@@ -11,6 +11,8 @@ import './ChatWidget.css';
 const mascotIdleIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
 const mascotReadyIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-mascot-ready-icon.png');
 const mascotReadySprite = getExtensionAssetUrl('icons/ready_sprite.png');
+const mascotSwingSprite = getExtensionAssetUrl('icons/swing_sprite.png');
+const mascotSwingLastFrame = getExtensionAssetUrl('icons/swing_sprite_last_position.png');
 const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
 
 const ChatWidget = () => {
@@ -24,6 +26,8 @@ const ChatWidget = () => {
     const [wizardStep, setWizardStep] = useState<number>(-1);
     const [wizardValue, setWizardValue] = useState('');
     const [animationComplete, setAnimationComplete] = useState(false);
+    const [isSwinging, setIsSwinging] = useState(false);
+    const [swingComplete, setSwingComplete] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +48,16 @@ const ChatWidget = () => {
         }
     }, [isOpen, animationComplete]);
 
+    useEffect(() => {
+        if (isSwinging) {
+            const timer = setTimeout(() => {
+                setIsSwinging(false);
+                setSwingComplete(true);
+            }, 1500); // 1.5s swing animation
+            return () => clearTimeout(timer);
+        }
+    }, [isSwinging]);
+
     const toggleOpen = () => setIsOpen(!isOpen);
 
     const base64ToFile = (base64: string, filename: string): File => {
@@ -59,6 +73,8 @@ const ChatWidget = () => {
     };
 
     const handleScan = async () => {
+        setIsSwinging(true);
+        setSwingComplete(false);
         setStatus('Scanning form...');
         const found = scanForm();
         setFields(found);
@@ -223,7 +239,19 @@ const ChatWidget = () => {
 
     return (
         <>
-            {!animationComplete ? (
+            {isSwinging ? (
+                <div
+                    className="sf-widget-mascot sf-widget-mascot-swing"
+                    style={{ backgroundImage: `url(${mascotSwingSprite})` }}
+                    aria-label="Sir Fills-A-Lot Mascot Swinging"
+                />
+            ) : swingComplete ? (
+                <img
+                    src={mascotSwingLastFrame}
+                    alt="Sir Fills-A-Lot Mascot"
+                    className="sf-widget-mascot sf-widget-mascot-swing-static"
+                />
+            ) : !animationComplete ? (
                 <div
                     className="sf-widget-mascot sf-widget-mascot-animated"
                     style={{ backgroundImage: `url(${mascotReadySprite})` }}

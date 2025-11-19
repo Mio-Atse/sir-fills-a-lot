@@ -73,11 +73,33 @@
         sf-sprite-animation 1.5s steps(64) forwards;
 }
 
+/* Swing sprite version */
+.sf-widget-mascot-swing {
+    background-repeat: no-repeat;
+    background-size: 9360px 144px;
+    /* 44 frames * 208px width */
+    background-position: 0 0;
+    width: 208px;
+    /* Actual frame width */
+    right: 129px;
+    /* Adjusted to keep centered: 160px - (208px - 146px)/2 */
+    animation: sf-swing-animation 1.5s steps(44) forwards;
+}
+
 /* Static image version */
 .sf-widget-mascot-static {
     width: 146px;
     height: auto;
     object-fit: contain;
+}
+
+/* Swing static frame - matches swing sprite width */
+.sf-widget-mascot-swing-static {
+    width: 208px;
+    height: auto;
+    object-fit: contain;
+    right: 129px;
+    /* Same as swing sprite to keep centered */
 }
 
 
@@ -101,6 +123,17 @@
     to {
         background-position: -9928px 0;
         /* Full sprite sheet width */
+    }
+}
+
+@keyframes sf-swing-animation {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -9360px 0;
+        /* Full swing sprite width: 44 frames * 208px */
     }
 }
 
