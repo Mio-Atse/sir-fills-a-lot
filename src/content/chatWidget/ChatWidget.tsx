@@ -14,8 +14,23 @@ const ChatWidget = () => {
     const [messages, setMessages] = useState<{ role: string, content: string }[]>([]);
     const [input, setInput] = useState('');
     const [status, setStatus] = useState('');
+    const [unfilledFields, setUnfilledFields] = useState<FormFieldDescriptor[]>([]);
+    const [wizardStep, setWizardStep] = useState<number>(-1);
+    const [wizardValue, setWizardValue] = useState('');
 
     const toggleOpen = () => setIsOpen(!isOpen);
+
+    const base64ToFile = (base64: string, filename: string): File => {
+        const arr = base64.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    };
 
     const handleScan = async () => {
         setStatus('Scanning form...');
@@ -35,30 +50,78 @@ const ChatWidget = () => {
         }
 
         let filledCount = 0;
-        for (const f of found) {
-            if (f.predictedType === 'unknown') continue;
+        const missing: FormFieldDescriptor[] = [];
 
-            let val: string | number | boolean | undefined;
+        for (const f of found) {
+            if (f.predictedType === 'unknown') {
+                missing.push(f);
+                continue;
+            }
+
+            let val: string | number | boolean | File | undefined;
 
             // Simple mapping
             switch (f.predictedType) {
-                case 'first_name': val = profile.cv_name.split(' ')[0]; break; // Fallback if not parsed
-                case 'last_name': val = profile.cv_name.split(' ').slice(1).join(' '); break;
-                case 'full_name': val = profile.cv_name; break;
-                case 'email': val = "user@example.com"; break; // TODO: Add email to profile schema
-                case 'linkedin': val = profile.summary.match(/linkedin\.com\/in\/[\w-]+/)?.[0] || ''; break;
+                case 'first_name': val = profile.full_name?.split(' ')[0] || profile.cv_name.split(' ')[0]; break;
+                case 'last_name': val = profile.full_name?.split(' ').slice(1).join(' ') || profile.cv_name.split(' ').slice(1).join(' '); break;
+                case 'full_name': val = profile.full_name || profile.cv_name; break;
+                case 'email': val = profile.email; break;
+                case 'phone': val = profile.phone; break;
+                case 'linkedin': val = profile.linkedin || profile.summary.match(/linkedin\.com\/in\/[\w-]+/)?.[0] || ''; break;
+                case 'github': val = profile.github; break;
+                case 'portfolio': val = profile.portfolio; break;
                 case 'salary_expectation': val = prefs.salary_min; break;
                 case 'relocation': val = prefs.relocation_ok; break;
                 case 'remote': val = prefs.remote_only; break;
-                // Add more mappings
+                case 'resume_upload':
+                    if (profile.resume_data && profile.resume_name) {
+                        val = base64ToFile(profile.resume_data, profile.resume_name);
+                    }
+                    break;
             }
 
-            if (val !== undefined) {
+            if (val !== undefined && val !== '') {
                 fillField(f, val);
                 filledCount++;
+            } else {
+                missing.push(f);
             }
         }
         setStatus(`Filled ${filledCount} fields.`);
+
+        if (missing.length > 0) {
+            setUnfilledFields(missing);
+            setWizardStep(0);
+            setActiveTab('chat');
+            setMessages(prev => [...prev, { role: 'assistant', content: `I found ${missing.length} fields I couldn't fill automatically. Let's go through them.` }]);
+        }
+    };
+
+    const handleWizardSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (wizardStep < 0 || wizardStep >= unfilledFields.length) return;
+
+        const field = unfilledFields[wizardStep];
+        fillField(field, wizardValue);
+
+        setWizardValue('');
+        if (wizardStep + 1 < unfilledFields.length) {
+            setWizardStep(wizardStep + 1);
+        } else {
+            setWizardStep(-1);
+            setMessages(prev => [...prev, { role: 'assistant', content: "All fields processed!" }]);
+            setStatus('Form filling complete.');
+        }
+    };
+
+    const skipWizardStep = () => {
+        setWizardValue('');
+        if (wizardStep + 1 < unfilledFields.length) {
+            setWizardStep(wizardStep + 1);
+        } else {
+            setWizardStep(-1);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Wizard finished." }]);
+        }
     };
 
     const generateCoverLetter = async () => {
@@ -179,15 +242,37 @@ const ChatWidget = () => {
                                     {m.content}
                                 </div>
                             ))}
+
+                            {wizardStep >= 0 && unfilledFields[wizardStep] && (
+                                <div className="wizard-card">
+                                    <p><strong>Fill Field:</strong> {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name} ({unfilledFields[wizardStep].predictedType})</p>
+                                    <form onSubmit={handleWizardSubmit}>
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={wizardValue}
+                                            onChange={e => setWizardValue(e.target.value)}
+                                            placeholder="Enter value..."
+                                        />
+                                        <div className="wizard-actions">
+                                            <button type="submit">Fill</button>
+                                            <button type="button" onClick={skipWizardStep} className="secondary">Skip</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
                         </div>
-                        <form onSubmit={handleChatSubmit}>
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                placeholder="Ask me anything..."
-                            />
-                        </form>
+
+                        {wizardStep === -1 && (
+                            <form onSubmit={handleChatSubmit}>
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    placeholder="Ask me anything..."
+                                />
+                            </form>
+                        )}
                     </div>
                 )}
             </div>

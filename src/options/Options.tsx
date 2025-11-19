@@ -97,11 +97,25 @@ const Options = () => {
 
             const parsed = JSON.parse(cleanJsonString(jsonStr));
 
+            // Read file as Base64 for storage
+            const getBase64 = (file: File): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = error => reject(error);
+                });
+            };
+
+            const base64Data = await getBase64(file);
+
             const newProfile: UserProfile = {
                 id: crypto.randomUUID(),
                 cv_name: file.name,
                 raw_text: text,
                 last_updated: Date.now(),
+                resume_data: base64Data,
+                resume_name: file.name,
                 ...parsed
             };
 
@@ -246,8 +260,59 @@ const Options = () => {
                         <h3>Saved Profiles</h3>
                         {profiles.map(p => (
                             <div key={p.id} className="profile-card">
-                                <strong>{p.cv_name}</strong>
-                                <p>{p.summary.substring(0, 100)}...</p>
+                                <div className="profile-header">
+                                    <strong>{p.cv_name}</strong>
+                                    <button onClick={() => StorageService.setDefaultProfileId(p.id).then(loadData)}>
+                                        {p.id === profiles[0]?.id ? 'Default' : 'Make Default'}
+                                    </button>
+                                </div>
+
+                                <div className="profile-details-form">
+                                    <div className="form-row">
+                                        <label>Full Name:
+                                            <input type="text" value={p.full_name || ''} onChange={e => {
+                                                const updated = { ...p, full_name: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                        <label>Email:
+                                            <input type="text" value={p.email || ''} onChange={e => {
+                                                const updated = { ...p, email: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Phone:
+                                            <input type="text" value={p.phone || ''} onChange={e => {
+                                                const updated = { ...p, phone: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                        <label>LinkedIn:
+                                            <input type="text" value={p.linkedin || ''} onChange={e => {
+                                                const updated = { ...p, linkedin: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>GitHub:
+                                            <input type="text" value={p.github || ''} onChange={e => {
+                                                const updated = { ...p, github: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                        <label>Portfolio:
+                                            <input type="text" value={p.portfolio || ''} onChange={e => {
+                                                const updated = { ...p, portfolio: e.target.value };
+                                                StorageService.saveProfile(updated).then(loadData);
+                                            }} />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <p className="summary-preview">{p.summary.substring(0, 100)}...</p>
                             </div>
                         ))}
                     </div>
@@ -261,16 +326,16 @@ const Options = () => {
                         <label>Preferred Role Titles (comma separated)</label>
                         <input
                             type="text"
-                            value={prefs.preferred_role_titles.join(', ')}
-                            onChange={e => setPrefs({ ...prefs, preferred_role_titles: e.target.value.split(',').map(s => s.trim()) })}
+                            defaultValue={prefs.preferred_role_titles.join(', ')}
+                            onBlur={e => setPrefs({ ...prefs, preferred_role_titles: e.target.value.split(',').map(s => s.trim()) })}
                         />
                     </div>
                     <div className="form-group">
                         <label>Preferred Locations (comma separated)</label>
                         <input
                             type="text"
-                            value={prefs.preferred_locations.join(', ')}
-                            onChange={e => setPrefs({ ...prefs, preferred_locations: e.target.value.split(',').map(s => s.trim()) })}
+                            defaultValue={prefs.preferred_locations.join(', ')}
+                            onBlur={e => setPrefs({ ...prefs, preferred_locations: e.target.value.split(',').map(s => s.trim()) })}
                         />
                     </div>
                     <div className="form-group checkbox">
@@ -299,6 +364,7 @@ const Options = () => {
                             type="number"
                             value={prefs.salary_min}
                             onChange={e => setPrefs({ ...prefs, salary_min: Number(e.target.value) })}
+                            step="1000"
                         />
                     </div>
                     <div className="form-group">

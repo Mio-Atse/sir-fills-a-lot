@@ -6,16 +6,30 @@ import './Popup.css';
 
 const Popup = () => {
     const [hasProfile, setHasProfile] = useState(false);
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [activeProfileId, setActiveProfileId] = useState<string>('');
     const [showPaste, setShowPaste] = useState(false);
     const [pasteText, setPasteText] = useState('');
 
     useEffect(() => {
-        checkProfile();
+        loadData();
     }, []);
 
-    const checkProfile = async () => {
-        const profiles = await StorageService.getProfiles();
-        setHasProfile(profiles.length > 0);
+    const loadData = async () => {
+        const [p, defaultId] = await Promise.all([
+            StorageService.getProfiles(),
+            StorageService.getDefaultProfileId()
+        ]);
+        setProfiles(p);
+        setHasProfile(p.length > 0);
+        if (defaultId) setActiveProfileId(defaultId);
+        else if (p.length > 0) setActiveProfileId(p[0].id);
+    };
+
+    const handleProfileChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newId = e.target.value;
+        setActiveProfileId(newId);
+        await StorageService.setDefaultProfileId(newId);
     };
 
     const openOptions = () => {
@@ -23,7 +37,6 @@ const Popup = () => {
     };
 
     const captureJobDescription = async () => {
-        // Send message to content script to trigger overlay capture mode
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab.id) {
             chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_CAPTURE_MODE' });
@@ -37,7 +50,6 @@ const Popup = () => {
             return;
         }
 
-        // Use the background script handler to save consistent job object
         await chrome.runtime.sendMessage({ type: 'SAVE_JOB_DESCRIPTION', text: pasteText });
         window.close();
     };
@@ -53,6 +65,17 @@ const Popup = () => {
                 </div>
             ) : (
                 <div className="actions">
+                    {profiles.length > 1 && (
+                        <div className="profile-selector">
+                            <label>Active Profile:</label>
+                            <select value={activeProfileId} onChange={handleProfileChange}>
+                                {profiles.map(p => (
+                                    <option key={p.id} value={p.id}>{p.cv_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {!showPaste ? (
                         <>
                             <button onClick={captureJobDescription}>

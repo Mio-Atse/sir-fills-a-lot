@@ -4,6 +4,18 @@ export interface UserProfile {
     id: string;
     cv_name: string;
     summary: string;
+    // Personal Details
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    linkedin?: string;
+    github?: string;
+    portfolio?: string;
+
+    // Resume File (Base64)
+    resume_data?: string;
+    resume_name?: string;
+
     skills: string[];
     experience: {
         company: string;
