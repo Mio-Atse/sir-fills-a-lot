@@ -7,6 +7,10 @@ import { callLLM } from '../llm/providers';
 import { getCVProfilePrompt } from '../llm/prompts/cvProfilePrompt';
 import './Options.css';
 
+import appIcon from '/icons/sir-fills-a-lot-app-icon.png';
+import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
+import { Settings, FileText, Sliders, UploadCloud, Save } from 'lucide-react';
+
 // Import pdfjs-dist
 import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore
@@ -143,242 +147,316 @@ const Options = () => {
 
     return (
         <div className="container">
-            <h1>Job Helper Settings</h1>
+            <header className="options-header">
+                <div className="header-content">
+                    <div className="brand-badge">
+                        <img src={appIcon} alt="Sir Fills-A-Lot" />
+                    </div>
+                    <div className="header-text">
+                        <h1>Sir Fills-A-Lot Settings</h1>
+                        <p>Configure your knight, CVs, and job preferences.</p>
+                    </div>
+                </div>
+            </header>
 
-            <div className="tabs">
-                <button className={activeTab === 'llm' ? 'active' : ''} onClick={() => setActiveTab('llm')}>LLM Config</button>
-                <button className={activeTab === 'cv' ? 'active' : ''} onClick={() => setActiveTab('cv')}>CV & Profile</button>
-                <button className={activeTab === 'prefs' ? 'active' : ''} onClick={() => setActiveTab('prefs')}>Preferences</button>
+            <div className="tabs-container">
+                <div className="tabs">
+                    <button className={activeTab === 'llm' ? 'active' : ''} onClick={() => setActiveTab('llm')}>
+                        <Settings size={16} /> LLM Config
+                    </button>
+                    <button className={activeTab === 'cv' ? 'active' : ''} onClick={() => setActiveTab('cv')}>
+                        <FileText size={16} /> CV & Profile
+                    </button>
+                    <button className={activeTab === 'prefs' ? 'active' : ''} onClick={() => setActiveTab('prefs')}>
+                        <Sliders size={16} /> Preferences
+                    </button>
+                </div>
             </div>
 
-            {status && <div className="status-bar">{status}</div>}
+            <div className="content-area">
+                {status && <div className="status-bar">{status}</div>}
 
-            {activeTab === 'llm' && (
-                <div className="section">
-                    <h2>LLM Configuration</h2>
-                    <div className="form-group">
-                        <label>Mode</label>
-                        <select
-                            value={llmConfig.mode}
-                            onChange={e => setLlmConfig({ ...llmConfig, mode: e.target.value as any })}
-                        >
-                            <option value="local">Local (Ollama)</option>
-                            <option value="api">API Provider</option>
-                        </select>
-                    </div>
-
-                    {llmConfig.mode === 'local' && (
-                        <div className="form-group">
-                            <label>Ollama Base URL</label>
-                            <input
-                                type="text"
-                                value={llmConfig.ollama.baseUrl}
-                                onChange={e => setLlmConfig({ ...llmConfig, ollama: { ...llmConfig.ollama, baseUrl: e.target.value } })}
-                            />
+                {activeTab === 'llm' && (
+                    <div className="section card">
+                        <div className="card-header">
+                            <h2>LLM Configuration</h2>
                         </div>
-                    )}
-
-                    {llmConfig.mode === 'api' && (
-                        <>
+                        <div className="card-body">
                             <div className="form-group">
-                                <label>Provider</label>
-                                <select
-                                    value={llmConfig.provider || ''}
-                                    onChange={e => setLlmConfig({ ...llmConfig, provider: e.target.value as any })}
-                                >
-                                    <option value="">Select Provider</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="gemini">Gemini</option>
-                                </select>
+                                <label>Mode</label>
+                                <div className="radio-group">
+                                    <label className="radio-label">
+                                        <input
+                                            type="radio"
+                                            value="local"
+                                            checked={llmConfig.mode === 'local'}
+                                            onChange={() => setLlmConfig({ ...llmConfig, mode: 'local' })}
+                                        />
+                                        Local (Ollama)
+                                    </label>
+                                    <label className="radio-label">
+                                        <input
+                                            type="radio"
+                                            value="api"
+                                            checked={llmConfig.mode === 'api'}
+                                            onChange={() => setLlmConfig({ ...llmConfig, mode: 'api' })}
+                                        />
+                                        API Provider
+                                    </label>
+                                </div>
                             </div>
 
-                            {llmConfig.provider === 'openai' && (
+                            {llmConfig.mode === 'local' && (
                                 <div className="form-group">
-                                    <label>OpenAI API Key</label>
+                                    <label>Ollama Base URL</label>
                                     <input
-                                        type="password"
-                                        value={llmConfig.apiKeys.openai || ''}
-                                        onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, openai: e.target.value } })}
+                                        type="text"
+                                        value={llmConfig.ollama.baseUrl}
+                                        onChange={e => setLlmConfig({ ...llmConfig, ollama: { ...llmConfig.ollama, baseUrl: e.target.value } })}
                                     />
                                 </div>
                             )}
-                            {llmConfig.provider === 'groq' && (
-                                <div className="form-group">
-                                    <label>Groq API Key</label>
-                                    <input
-                                        type="password"
-                                        value={llmConfig.apiKeys.groq || ''}
-                                        onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, groq: e.target.value } })}
-                                    />
+
+                            {llmConfig.mode === 'api' && (
+                                <div className="api-config">
+                                    <div className="form-group">
+                                        <label>Provider</label>
+                                        <select
+                                            value={llmConfig.provider || ''}
+                                            onChange={e => setLlmConfig({ ...llmConfig, provider: e.target.value as any })}
+                                        >
+                                            <option value="">Select Provider</option>
+                                            <option value="openai">OpenAI</option>
+                                            <option value="groq">Groq</option>
+                                            <option value="gemini">Gemini</option>
+                                        </select>
+                                    </div>
+
+                                    {llmConfig.provider === 'openai' && (
+                                        <div className="form-group">
+                                            <label>OpenAI API Key</label>
+                                            <input
+                                                type="password"
+                                                value={llmConfig.apiKeys.openai || ''}
+                                                onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, openai: e.target.value } })}
+                                            />
+                                        </div>
+                                    )}
+                                    {llmConfig.provider === 'groq' && (
+                                        <div className="form-group">
+                                            <label>Groq API Key</label>
+                                            <input
+                                                type="password"
+                                                value={llmConfig.apiKeys.groq || ''}
+                                                onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, groq: e.target.value } })}
+                                            />
+                                        </div>
+                                    )}
+                                    {llmConfig.provider === 'gemini' && (
+                                        <div className="form-group">
+                                            <label>Gemini API Key</label>
+                                            <input
+                                                type="password"
+                                                value={llmConfig.apiKeys.gemini || ''}
+                                                onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, gemini: e.target.value } })}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            {llmConfig.provider === 'gemini' && (
+
+                            <div className="model-config">
                                 <div className="form-group">
-                                    <label>Gemini API Key</label>
+                                    <label>Big Model Name (e.g. llama3:70b, gpt-4)</label>
                                     <input
-                                        type="password"
-                                        value={llmConfig.apiKeys.gemini || ''}
-                                        onChange={e => setLlmConfig({ ...llmConfig, apiKeys: { ...llmConfig.apiKeys, gemini: e.target.value } })}
+                                        type="text"
+                                        value={llmConfig.models.bigModel}
+                                        onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, bigModel: e.target.value } })}
                                     />
                                 </div>
-                            )}
-                        </>
-                    )}
-
-                    <div className="form-group">
-                        <label>Big Model Name (e.g. llama3:70b, gpt-4)</label>
-                        <input
-                            type="text"
-                            value={llmConfig.models.bigModel}
-                            onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, bigModel: e.target.value } })}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Small Model Name (e.g. llama3:8b, gpt-3.5-turbo)</label>
-                        <input
-                            type="text"
-                            value={llmConfig.models.smallModel}
-                            onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, smallModel: e.target.value } })}
-                        />
-                    </div>
-
-                    <button onClick={saveLLM}>Save Configuration</button>
-                </div>
-            )}
-
-            {activeTab === 'cv' && (
-                <div className="section">
-                    <h2>CV Management</h2>
-                    <div className="upload-box">
-                        <label>Upload New CV (Text/PDF)</label>
-                        <input type="file" accept=".txt,.pdf,.md" onChange={handleFileUpload} disabled={isProcessing} />
-                        {isProcessing && <p>Processing... Please wait.</p>}
-                    </div>
-
-                    <div className="profile-list">
-                        <h3>Saved Profiles</h3>
-                        {profiles.map(p => (
-                            <div key={p.id} className="profile-card">
-                                <div className="profile-header">
-                                    <strong>{p.cv_name}</strong>
-                                    <button onClick={() => StorageService.setDefaultProfileId(p.id).then(loadData)}>
-                                        {p.id === profiles[0]?.id ? 'Default' : 'Make Default'}
-                                    </button>
+                                <div className="form-group">
+                                    <label>Small Model Name (e.g. llama3:8b, gpt-3.5-turbo)</label>
+                                    <input
+                                        type="text"
+                                        value={llmConfig.models.smallModel}
+                                        onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, smallModel: e.target.value } })}
+                                    />
                                 </div>
-
-                                <div className="profile-details-form">
-                                    <div className="form-row">
-                                        <label>Full Name:
-                                            <input type="text" value={p.full_name || ''} onChange={e => {
-                                                const updated = { ...p, full_name: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                        <label>Email:
-                                            <input type="text" value={p.email || ''} onChange={e => {
-                                                const updated = { ...p, email: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                    </div>
-                                    <div className="form-row">
-                                        <label>Phone:
-                                            <input type="text" value={p.phone || ''} onChange={e => {
-                                                const updated = { ...p, phone: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                        <label>LinkedIn:
-                                            <input type="text" value={p.linkedin || ''} onChange={e => {
-                                                const updated = { ...p, linkedin: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                    </div>
-                                    <div className="form-row">
-                                        <label>GitHub:
-                                            <input type="text" value={p.github || ''} onChange={e => {
-                                                const updated = { ...p, github: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                        <label>Portfolio:
-                                            <input type="text" value={p.portfolio || ''} onChange={e => {
-                                                const updated = { ...p, portfolio: e.target.value };
-                                                StorageService.saveProfile(updated).then(loadData);
-                                            }} />
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <p className="summary-preview">{p.summary.substring(0, 100)}...</p>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
-            {activeTab === 'prefs' && (
-                <div className="section">
-                    <h2>Preferences</h2>
-                    <div className="form-group">
-                        <label>Preferred Role Titles (comma separated)</label>
-                        <input
-                            type="text"
-                            defaultValue={prefs.preferred_role_titles.join(', ')}
-                            onBlur={e => setPrefs({ ...prefs, preferred_role_titles: e.target.value.split(',').map(s => s.trim()) })}
-                        />
+                            <button onClick={saveLLM} className="btn-primary">
+                                <Save size={16} /> Save Configuration
+                            </button>
+                        </div>
                     </div>
-                    <div className="form-group">
-                        <label>Preferred Locations (comma separated)</label>
-                        <input
-                            type="text"
-                            defaultValue={prefs.preferred_locations.join(', ')}
-                            onBlur={e => setPrefs({ ...prefs, preferred_locations: e.target.value.split(',').map(s => s.trim()) })}
-                        />
-                    </div>
-                    <div className="form-group checkbox">
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={prefs.remote_only}
-                                onChange={e => setPrefs({ ...prefs, remote_only: e.target.checked })}
-                            />
-                            Remote Only
-                        </label>
-                    </div>
-                    <div className="form-group checkbox">
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={prefs.relocation_ok}
-                                onChange={e => setPrefs({ ...prefs, relocation_ok: e.target.checked })}
-                            />
-                            Open to Relocation
-                        </label>
-                    </div>
-                    <div className="form-group">
-                        <label>Min Salary</label>
-                        <input
-                            type="number"
-                            value={prefs.salary_min}
-                            onChange={e => setPrefs({ ...prefs, salary_min: Number(e.target.value) })}
-                            step="1000"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Currency</label>
-                        <input
-                            type="text"
-                            value={prefs.currency}
-                            onChange={e => setPrefs({ ...prefs, currency: e.target.value })}
-                        />
-                    </div>
+                )}
 
-                    <button onClick={savePrefs}>Save Preferences</button>
-                </div>
-            )}
+                {activeTab === 'cv' && (
+                    <div className="section">
+                        <div className="card upload-card">
+                            <div className="upload-content">
+                                <img src={mascotIcon} alt="Mascot" className="mascot-inline" />
+                                <div className="upload-text">
+                                    <h3>Upload New CV</h3>
+                                    <p>Drop your CV here or click to upload. PDF or text supported.</p>
+                                </div>
+                                <label className="upload-btn">
+                                    <UploadCloud size={20} />
+                                    <span>Select File</span>
+                                    <input type="file" accept=".txt,.pdf,.md" onChange={handleFileUpload} disabled={isProcessing} hidden />
+                                </label>
+                            </div>
+                            {isProcessing && <div className="processing-indicator">Processing... Please wait.</div>}
+                        </div>
+
+                        <div className="profile-list">
+                            <h3>Saved Profiles</h3>
+                            {profiles.map(p => (
+                                <div key={p.id} className="profile-card card">
+                                    <div className="profile-header">
+                                        <div className="profile-title">
+                                            <div className="profile-icon">
+                                                <img src={appIcon} alt="Profile" />
+                                            </div>
+                                            <strong>{p.cv_name}</strong>
+                                            {p.id === profiles[0]?.id && <span className="badge-default">Default</span>}
+                                        </div>
+                                        <button
+                                            className="btn-subtle"
+                                            onClick={() => StorageService.setDefaultProfileId(p.id).then(loadData)}
+                                        >
+                                            {p.id === profiles[0]?.id ? 'Active' : 'Make Default'}
+                                        </button>
+                                    </div>
+
+                                    <div className="profile-details-form">
+                                        <div className="form-row">
+                                            <label>Full Name
+                                                <input type="text" value={p.full_name || ''} onChange={e => {
+                                                    const updated = { ...p, full_name: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                            <label>Email
+                                                <input type="text" value={p.email || ''} onChange={e => {
+                                                    const updated = { ...p, email: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                        </div>
+                                        <div className="form-row">
+                                            <label>Phone
+                                                <input type="text" value={p.phone || ''} onChange={e => {
+                                                    const updated = { ...p, phone: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                            <label>LinkedIn
+                                                <input type="text" value={p.linkedin || ''} onChange={e => {
+                                                    const updated = { ...p, linkedin: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                        </div>
+                                        <div className="form-row">
+                                            <label>GitHub
+                                                <input type="text" value={p.github || ''} onChange={e => {
+                                                    const updated = { ...p, github: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                            <label>Portfolio
+                                                <input type="text" value={p.portfolio || ''} onChange={e => {
+                                                    const updated = { ...p, portfolio: e.target.value };
+                                                    StorageService.saveProfile(updated).then(loadData);
+                                                }} />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'prefs' && (
+                    <div className="section card">
+                        <div className="card-header">
+                            <h2>Preferences</h2>
+                        </div>
+                        <div className="card-body">
+                            <div className="prefs-group">
+                                <h3>Roles & Locations</h3>
+                                <div className="form-group">
+                                    <label>Preferred Role Titles (comma separated)</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={prefs.preferred_role_titles.join(', ')}
+                                        onBlur={e => setPrefs({ ...prefs, preferred_role_titles: e.target.value.split(',').map(s => s.trim()) })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Preferred Locations (comma separated)</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={prefs.preferred_locations.join(', ')}
+                                        onBlur={e => setPrefs({ ...prefs, preferred_locations: e.target.value.split(',').map(s => s.trim()) })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="prefs-group">
+                                <h3>Work Style</h3>
+                                <div className="checkbox-row">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={prefs.remote_only}
+                                            onChange={e => setPrefs({ ...prefs, remote_only: e.target.checked })}
+                                        />
+                                        Remote Only
+                                    </label>
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={prefs.relocation_ok}
+                                            onChange={e => setPrefs({ ...prefs, relocation_ok: e.target.checked })}
+                                        />
+                                        Open to Relocation
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="prefs-group">
+                                <h3>Compensation</h3>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Min Salary</label>
+                                        <input
+                                            type="number"
+                                            value={prefs.salary_min}
+                                            onChange={e => setPrefs({ ...prefs, salary_min: Number(e.target.value) })}
+                                            step="1000"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Currency</label>
+                                        <input
+                                            type="text"
+                                            value={prefs.currency}
+                                            onChange={e => setPrefs({ ...prefs, currency: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onClick={savePrefs} className="btn-primary">
+                                <Save size={16} /> Save Preferences
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

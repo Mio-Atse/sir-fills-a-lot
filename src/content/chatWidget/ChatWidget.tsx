@@ -1,10 +1,11 @@
 // File: src/content/chatWidget/ChatWidget.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { scanForm, fillField, FormFieldDescriptor } from '../formScanner';
 import { StorageService } from '../../storage/storage';
 import { callLLM } from '../../llm/providers';
 import { getCoverLetterPrompt } from '../../llm/prompts/coverLetterPrompt';
-import { MessageCircle, X, Play } from 'lucide-react';
+import { X, Play, FileText, Send, Sparkles, AlertCircle } from 'lucide-react';
+import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
 import './ChatWidget.css';
 
 const ChatWidget = () => {
@@ -17,6 +18,16 @@ const ChatWidget = () => {
     const [unfilledFields, setUnfilledFields] = useState<FormFieldDescriptor[]>([]);
     const [wizardStep, setWizardStep] = useState<number>(-1);
     const [wizardValue, setWizardValue] = useState('');
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -189,44 +200,60 @@ const ChatWidget = () => {
 
     if (!isOpen) {
         return (
-            <button className="job-helper-fab" onClick={toggleOpen}>
-                <MessageCircle size={24} />
+            <button className="sf-fab" onClick={toggleOpen}>
+                <img src={mascotIcon} alt="Sir Fills-A-Lot" />
             </button>
         );
     }
 
     return (
-        <div className="job-helper-widget">
-            <div className="widget-header">
-                <h3>Job Helper</h3>
-                <button onClick={toggleOpen}><X size={18} /></button>
+        <div className="sf-widget-panel">
+            <div className="sf-widget-header">
+                <div className="sf-header-brand">
+                    <div className="sf-header-icon">
+                        <img src={mascotIcon} alt="Mascot" />
+                    </div>
+                    <div className="sf-header-text">
+                        <h3>Sir Fills-A-Lot</h3>
+                        <p>Job Assistant</p>
+                    </div>
+                </div>
+                <button onClick={toggleOpen} className="sf-close-btn"><X size={18} /></button>
             </div>
 
-            <div className="widget-tabs">
+            <div className="sf-widget-tabs">
                 <button className={activeTab === 'scan' ? 'active' : ''} onClick={() => setActiveTab('scan')}>Scan & Fill</button>
                 <button className={activeTab === 'chat' ? 'active' : ''} onClick={() => setActiveTab('chat')}>Chat</button>
             </div>
 
-            <div className="widget-content">
-                {status && <div className="status-msg">{status}</div>}
+            <div className="sf-widget-content">
+                {status && <div className="sf-status-bar"><Sparkles size={12} /> {status}</div>}
 
                 {activeTab === 'scan' && (
-                    <div className="scan-panel">
-                        <button className="primary-btn" onClick={handleScan}>
-                            <Play size={16} /> Scan & Auto-Fill
-                        </button>
+                    <div className="sf-scan-panel">
+                        <div className="sf-cta-group">
+                            <button className="sf-btn-primary" onClick={handleScan}>
+                                <Play size={16} /> Scan & Auto-Fill
+                            </button>
 
-                        <button className="secondary-btn" onClick={generateCoverLetter}>
-                            Generate Cover Letter
-                        </button>
+                            <button className="sf-btn-secondary" onClick={generateCoverLetter}>
+                                <FileText size={16} /> Generate Cover Letter
+                            </button>
+                        </div>
 
-                        <div className="fields-list">
+                        <div className="sf-fields-list">
                             <h4>Detected Fields ({fields.length})</h4>
                             <ul>
                                 {fields.map((f, i) => (
-                                    <li key={i}>
-                                        <span className="field-type">{f.predictedType}</span>
-                                        <span className="field-name">{f.label || f.name}</span>
+                                    <li key={i} className="sf-field-item">
+                                        <div className="sf-field-info">
+                                            <span className="sf-field-label">{f.label || f.name}</span>
+                                            <span className="sf-field-type">{f.predictedType}</span>
+                                        </div>
+                                        <div className="sf-field-status">
+                                            {/* Placeholder for status icon */}
+                                            <div className="sf-status-dot"></div>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
@@ -235,17 +262,30 @@ const ChatWidget = () => {
                 )}
 
                 {activeTab === 'chat' && (
-                    <div className="chat-panel">
-                        <div className="messages">
+                    <div className="sf-chat-panel">
+                        <div className="sf-messages">
                             {messages.map((m, i) => (
-                                <div key={i} className={`msg ${m.role}`}>
-                                    {m.content}
+                                <div key={i} className={`sf-msg-row ${m.role}`}>
+                                    {m.role === 'assistant' && (
+                                        <div className="sf-msg-avatar">
+                                            <img src={mascotIcon} alt="Bot" />
+                                        </div>
+                                    )}
+                                    <div className={`sf-msg-bubble ${m.role}`}>
+                                        {m.content}
+                                    </div>
                                 </div>
                             ))}
 
                             {wizardStep >= 0 && unfilledFields[wizardStep] && (
-                                <div className="wizard-card">
-                                    <p><strong>Fill Field:</strong> {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name} ({unfilledFields[wizardStep].predictedType})</p>
+                                <div className="sf-wizard-card">
+                                    <div className="sf-wizard-header">
+                                        <AlertCircle size={16} className="sf-wizard-icon" />
+                                        <span>Missing Field</span>
+                                    </div>
+                                    <p className="sf-wizard-label">
+                                        {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name}
+                                    </p>
                                     <form onSubmit={handleWizardSubmit}>
                                         <input
                                             autoFocus
@@ -253,24 +293,29 @@ const ChatWidget = () => {
                                             value={wizardValue}
                                             onChange={e => setWizardValue(e.target.value)}
                                             placeholder="Enter value..."
+                                            className="sf-wizard-input"
                                         />
-                                        <div className="wizard-actions">
-                                            <button type="submit">Fill</button>
-                                            <button type="button" onClick={skipWizardStep} className="secondary">Skip</button>
+                                        <div className="sf-wizard-actions">
+                                            <button type="submit" className="sf-btn-sm-primary">Fill</button>
+                                            <button type="button" onClick={skipWizardStep} className="sf-btn-sm-secondary">Skip</button>
                                         </div>
                                     </form>
                                 </div>
                             )}
+                            <div ref={messagesEndRef} />
                         </div>
 
                         {wizardStep === -1 && (
-                            <form onSubmit={handleChatSubmit}>
+                            <form onSubmit={handleChatSubmit} className="sf-chat-input-area">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     placeholder="Ask me anything..."
                                 />
+                                <button type="submit" disabled={!input.trim()}>
+                                    <Send size={16} />
+                                </button>
                             </form>
                         )}
                     </div>

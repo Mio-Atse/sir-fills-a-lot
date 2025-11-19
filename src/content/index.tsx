@@ -30,27 +30,20 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
 
 function activateCaptureMode() {
     const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = 'rgba(0, 122, 255, 0.1)';
-    overlay.style.zIndex = '1000000';
-    overlay.style.cursor = 'crosshair';
-    overlay.style.pointerEvents = 'auto';
+    overlay.className = 'sf-capture-overlay';
 
     const hint = document.createElement('div');
-    hint.textContent = 'Click on the job description text block';
-    hint.style.position = 'fixed';
-    hint.style.top = '20px';
-    hint.style.left = '50%';
-    hint.style.transform = 'translateX(-50%)';
-    hint.style.background = '#007aff';
-    hint.style.color = 'white';
-    hint.style.padding = '10px 20px';
-    hint.style.borderRadius = '20px';
-    hint.style.fontWeight = 'bold';
+    hint.className = 'sf-capture-hint';
+
+    // Create mascot image
+    const img = document.createElement('img');
+    img.src = chrome.runtime.getURL('icons/sir-fills-a-lot-mascot.png');
+
+    const text = document.createElement('span');
+    text.textContent = 'Click on the job description text block';
+
+    hint.appendChild(img);
+    hint.appendChild(text);
     overlay.appendChild(hint);
 
     document.body.appendChild(overlay);
@@ -73,13 +66,19 @@ function activateCaptureMode() {
         if (text.length > 50) {
             // Highlight the selected element briefly
             const originalOutline = target.style.outline;
-            target.style.outline = '2px solid #007aff';
+            const originalTransition = target.style.transition;
+
+            target.style.transition = 'outline 0.2s ease';
+            target.style.outline = '3px solid #6366f1'; // var(--sf-primary)
+
             setTimeout(() => {
                 target.style.outline = originalOutline;
+                target.style.transition = originalTransition;
             }, 1000);
 
             chrome.runtime.sendMessage({ type: 'SAVE_JOB_DESCRIPTION', text });
-            alert('Job Description Captured!');
+            // We could use a custom toast here instead of alert, but for now alert is fine or we can rely on the popup update
+            // alert('Job Description Captured!'); 
         } else {
             alert('Text too short. Please try clicking a larger block or use the "Paste" option in the extension popup.');
         }

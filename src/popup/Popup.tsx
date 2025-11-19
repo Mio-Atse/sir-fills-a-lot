@@ -4,6 +4,9 @@ import ReactDOM from 'react-dom/client';
 import { StorageService } from '../storage/storage';
 import './Popup.css';
 
+import appIcon from '/icons/sir-fills-a-lot-app-icon.png';
+import { Settings, MousePointerClick, ClipboardPaste } from 'lucide-react';
+
 const Popup = () => {
     const [hasProfile, setHasProfile] = useState(false);
     const [profiles, setProfiles] = useState<any[]>([]);
@@ -56,53 +59,73 @@ const Popup = () => {
 
     return (
         <div className="popup-container">
-            <h2>Job Helper</h2>
-
-            {!hasProfile ? (
-                <div className="alert">
-                    <p>No profile found. Please complete onboarding.</p>
-                    <button onClick={openOptions}>Open Settings</button>
+            <header className="popup-header">
+                <img src={appIcon} alt="Sir Fills-A-Lot" className="brand-icon" />
+                <div className="brand-text">
+                    <h1>Sir Fills-A-Lot</h1>
+                    <p>Your form-filling knight.</p>
                 </div>
-            ) : (
-                <div className="actions">
-                    {profiles.length > 1 && (
-                        <div className="profile-selector">
-                            <label>Active Profile:</label>
-                            <select value={activeProfileId} onChange={handleProfileChange}>
-                                {profiles.map(p => (
-                                    <option key={p.id} value={p.id}>{p.cv_name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+            </header>
 
-                    {!showPaste ? (
-                        <>
-                            <button onClick={captureJobDescription}>
-                                Pick Job Description from Page
+            <div className="popup-content">
+                {!hasProfile ? (
+                    <div className="alert-card">
+                        <div className="alert-icon">🛡️</div>
+                        <div className="alert-body">
+                            <p>No profile found yet!</p>
+                            <button onClick={openOptions} className="btn-primary">
+                                Complete Onboarding
                             </button>
-                            <button onClick={() => setShowPaste(true)} className="secondary">
-                                Paste Job Description
-                            </button>
-                            <button onClick={openOptions} className="secondary">
-                                Settings
-                            </button>
-                        </>
-                    ) : (
-                        <div className="paste-mode">
-                            <textarea
-                                value={pasteText}
-                                onChange={(e) => setPasteText(e.target.value)}
-                                placeholder="Paste job description here..."
-                                rows={8}
-                                style={{ width: '100%', marginBottom: '10px', padding: '8px' }}
-                            />
-                            <button onClick={handlePasteSave}>Save Description</button>
-                            <button onClick={() => setShowPaste(false)} className="secondary">Cancel</button>
                         </div>
-                    )}
-                </div>
-            )}
+                    </div>
+                ) : (
+                    <div className="actions">
+                        {profiles.length > 1 && (
+                            <div className="profile-selector-wrapper">
+                                <select
+                                    value={activeProfileId}
+                                    onChange={handleProfileChange}
+                                    className="profile-select"
+                                >
+                                    {profiles.map(p => (
+                                        <option key={p.id} value={p.id}>{p.cv_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {!showPaste ? (
+                            <>
+                                <button onClick={captureJobDescription} className="btn-primary">
+                                    <MousePointerClick size={16} />
+                                    Pick Job Description
+                                </button>
+                                <button onClick={() => setShowPaste(true)} className="btn-secondary">
+                                    <ClipboardPaste size={16} />
+                                    Paste Job Description
+                                </button>
+                                <button onClick={openOptions} className="btn-subtle">
+                                    <Settings size={16} />
+                                    Settings
+                                </button>
+                            </>
+                        ) : (
+                            <div className="paste-mode">
+                                <textarea
+                                    value={pasteText}
+                                    onChange={(e) => setPasteText(e.target.value)}
+                                    placeholder="Paste job description here..."
+                                    rows={6}
+                                />
+                                <div className="paste-actions">
+                                    <button onClick={handlePasteSave} className="btn-primary">Save</button>
+                                    <button onClick={() => setShowPaste(false)} className="btn-secondary">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
