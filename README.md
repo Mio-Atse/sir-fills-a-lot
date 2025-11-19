@@ -68,7 +68,7 @@ An open-source Chrome Extension (Manifest V3) that assists developers and job se
 
 2. **Fill Application**:
    - Go to the "Apply" page.
-   - Click the floating **Job Helper** button (bottom-right).
+   - Click the floating **Sir Fills A Lot** button (bottom-right).
    - Click **Scan & Fill**.
    - The extension will try to fill name, email, LinkedIn, etc.
    - Click **Generate Cover Letter** to draft and fill the cover letter field.
