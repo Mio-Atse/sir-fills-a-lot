@@ -66,7 +66,7 @@
 /* Animated sprite version */
 .sf-widget-mascot-animated {
     background-repeat: no-repeat;
-    background-size: 9928px 144px;
+    background-size: 9344px 144px;
     background-position: 0 0;
     animation:
         sf-mascot-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
@@ -77,20 +77,27 @@
 .sf-widget-mascot-swing {
     background-repeat: no-repeat;
     background-size: 9360px 144px;
-    /* 44 frames * 208px width */
+    /* 45 frames * 208px width */
     background-position: 0 0;
     width: 208px;
     /* Actual frame width */
     right: 129px;
     /* Adjusted to keep centered: 160px - (208px - 146px)/2 */
-    animation: sf-swing-animation 1.5s steps(44) forwards;
+    animation: sf-swing-animation 1.5s steps(45) forwards;
 }
 
 /* Static image version */
 .sf-widget-mascot-static {
-    width: 146px;
-    height: auto;
+    width: 144px;
+    height: 144px;
     object-fit: contain;
+    right: 161px;
+    /* Centered relative to Ready sprite (146px width) */
+    position: fixed;
+    bottom: 600px;
+    z-index: 2147483648;
+    filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.3));
+    pointer-events: none;
 }
 
 /* Swing static frame - matches swing sprite width */
@@ -121,7 +128,7 @@
     }
 
     to {
-        background-position: -9928px 0;
+        background-position: -9344px 0;
         /* Full sprite sheet width */
     }
 }
@@ -133,7 +140,7 @@
 
     to {
         background-position: -9360px 0;
-        /* Full swing sprite width: 44 frames * 208px */
+        /* Full swing sprite width: 45 frames * 208px */
     }
 }
 

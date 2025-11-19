@@ -40,13 +40,12 @@ const ChatWidget = () => {
     }, [messages]);
 
     useEffect(() => {
-        if (isOpen && !animationComplete) {
-            const timer = setTimeout(() => {
-                setAnimationComplete(true);
-            }, 1900); // 400ms appear + 1500ms sprite animation
-            return () => clearTimeout(timer);
+        if (!isOpen) {
+            setAnimationComplete(false);
         }
-    }, [isOpen, animationComplete]);
+    }, [isOpen]);
+
+    // We will use onAnimationEnd instead of setTimeout for better sync
 
     useEffect(() => {
         if (isSwinging) {
@@ -256,6 +255,11 @@ const ChatWidget = () => {
                     className="sf-widget-mascot sf-widget-mascot-animated"
                     style={{ backgroundImage: `url(${mascotReadySprite})` }}
                     aria-label="Sir Fills-A-Lot Mascot"
+                    onAnimationEnd={(e) => {
+                        if (e.animationName.includes('sprite-animation')) {
+                            setAnimationComplete(true);
+                        }
+                    }}
                 />
             ) : (
                 <img
