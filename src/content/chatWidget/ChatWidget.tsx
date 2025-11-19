@@ -42,6 +42,8 @@ const ChatWidget = () => {
     useEffect(() => {
         if (!isOpen) {
             setAnimationComplete(false);
+            setIsSwinging(false);
+            setSwingComplete(false);
         }
     }, [isOpen]);
 
