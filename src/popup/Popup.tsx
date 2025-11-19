@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { StorageService } from '../storage/storage';
 import './Popup.css';
 
-import appIcon from '/icons/sir-fills-a-lot-app-icon.png';
+import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
 import { Settings, MousePointerClick, ClipboardPaste } from 'lucide-react';
 
 const Popup = () => {
@@ -60,7 +60,7 @@ const Popup = () => {
     return (
         <div className="popup-container">
             <header className="popup-header">
-                <img src={appIcon} alt="Sir Fills-A-Lot" className="brand-icon" />
+                <img src={mascotIcon} alt="Sir Fills-A-Lot mascot" className="brand-icon" />
                 <div className="brand-text">
                     <h1>Sir Fills-A-Lot</h1>
                     <p>Your form-filling knight.</p>

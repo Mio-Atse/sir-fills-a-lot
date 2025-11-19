@@ -8,6 +8,9 @@ import { getCVProfilePrompt } from '../llm/prompts/cvProfilePrompt';
 import './Options.css';
 
 import appIcon from '/icons/sir-fills-a-lot-app-icon.png';
+import profileIconAlt2 from '/icons/sir-fills-a-lot-app-icon-2.png';
+import profileIconAlt4 from '/icons/sir-fills-a-lot-app-icon-4.png';
+import profileIconAlt6 from '/icons/sir-fills-a-lot-app-icon-6.png';
 import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
 import { Settings, FileText, Sliders, UploadCloud, Save } from 'lucide-react';
 
@@ -17,6 +20,26 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const profileIconPool = [appIcon, profileIconAlt2, profileIconAlt4, profileIconAlt6];
+
+const getProfileIcon = (profile: UserProfile, index: number) => {
+    const seed = (profile.id || profile.cv_name || `profile-${index}`) + index;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+    return profileIconPool[hash % profileIconPool.length];
+};
+
+const formatProfileDate = (timestamp?: number) => {
+    if (!timestamp) return 'Never updated';
+    try {
+        return new Date(timestamp).toLocaleDateString();
+    } catch {
+        return 'Never updated';
+    }
+};
 
 const cleanJsonString = (str: string): string => {
     // Remove markdown code blocks
@@ -64,20 +87,41 @@ const Options = () => {
     const [llmConfig, setLlmConfig] = useState<LLMConfig>(DEFAULT_LLM_CONFIG);
     const [status, setStatus] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
+    const [salaryMinInput, setSalaryMinInput] = useState('');
 
     useEffect(() => {
         loadData();
     }, []);
 
     const loadData = async () => {
-        const [p, pr, l] = await Promise.all([
+        const [p, pr, l, defaultId] = await Promise.all([
             StorageService.getProfiles(),
             StorageService.getPreferences(),
-            StorageService.getLLMConfig()
+            StorageService.getLLMConfig(),
+            StorageService.getDefaultProfileId()
         ]);
         setProfiles(p);
         setPrefs(pr);
+        setSalaryMinInput(pr.salary_min ? String(pr.salary_min) : '');
         setLlmConfig(l);
+        setDefaultProfileId(defaultId || (p[0]?.id ?? null));
+    };
+
+    const updateProfile = (profile: UserProfile, changes: Partial<UserProfile>) => {
+        const updated = { ...profile, ...changes, last_updated: Date.now() };
+        StorageService.saveProfile(updated).then(loadData);
+    };
+
+    const handleSetDefaultProfile = async (profileId: string) => {
+        await StorageService.setDefaultProfileId(profileId);
+        setDefaultProfileId(profileId);
+    };
+
+    const handleSalaryMinInputChange = (value: string) => {
+        const sanitized = value.replace(/[^\d]/g, '');
+        setSalaryMinInput(sanitized);
+        setPrefs(prev => ({ ...prev, salary_min: sanitized === '' ? 0 : Number(sanitized) }));
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +169,8 @@ const Options = () => {
 
             await StorageService.saveProfile(newProfile);
             await StorageService.setDefaultProfileId(newProfile.id);
-            setProfiles([...profiles, newProfile]);
+            setProfiles(prev => [...prev, newProfile]);
+            setDefaultProfileId(newProfile.id);
             setStatus('CV processed and saved!');
         } catch (err: any) {
             console.error(err);
@@ -311,70 +356,120 @@ const Options = () => {
 
                         <div className="profile-list">
                             <h3>Saved Profiles</h3>
-                            {profiles.map(p => (
-                                <div key={p.id} className="profile-card card">
-                                    <div className="profile-header">
-                                        <div className="profile-title">
-                                            <div className="profile-icon">
-                                                <img src={appIcon} alt="Profile" />
+                            {profiles.map((p, index) => {
+                                const rolesPreview = (p.preferred_roles || []).filter(role => !!role).slice(0, 3);
+                                return (
+                                    <div key={p.id} className="profile-card card">
+                                        <div className="profile-header">
+                                            <div className="profile-title">
+                                                <div className="profile-icon">
+                                                    <img src={getProfileIcon(p, index)} alt={`${p.cv_name} icon`} />
+                                                </div>
+                                                <div className="profile-title-text">
+                                                    <strong>{p.cv_name}</strong>
+                                                    <span className="profile-updated">Updated {formatProfileDate(p.last_updated)}</span>
+                                                </div>
                                             </div>
-                                            <strong>{p.cv_name}</strong>
-                                            {p.id === profiles[0]?.id && <span className="badge-default">Default</span>}
+                                            <div className="profile-actions">
+                                                {defaultProfileId === p.id && <span className="badge-default">Default</span>}
+                                                <button
+                                                    className={`btn-subtle${defaultProfileId === p.id ? ' active' : ''}`}
+                                                    onClick={() => handleSetDefaultProfile(p.id)}
+                                                >
+                                                    {defaultProfileId === p.id ? 'Active' : 'Make Default'}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button
-                                            className="btn-subtle"
-                                            onClick={() => StorageService.setDefaultProfileId(p.id).then(loadData)}
-                                        >
-                                            {p.id === profiles[0]?.id ? 'Active' : 'Make Default'}
-                                        </button>
-                                    </div>
 
-                                    <div className="profile-details-form">
-                                        <div className="form-row">
-                                            <label>Full Name
-                                                <input type="text" value={p.full_name || ''} onChange={e => {
-                                                    const updated = { ...p, full_name: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
-                                            <label>Email
-                                                <input type="text" value={p.email || ''} onChange={e => {
-                                                    const updated = { ...p, email: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
+                                        <div className="profile-meta">
+                                            <div className="profile-meta-item">
+                                                <span className="meta-label">Location</span>
+                                                <span className="meta-value">{p.location || 'Not set'}</span>
+                                            </div>
+                                            <div className="profile-meta-item stretch">
+                                                <span className="meta-label">Focus Roles</span>
+                                                <div className="profile-tags">
+                                                    {rolesPreview.length > 0 ? (
+                                                        rolesPreview.map((role, roleIndex) => (
+                                                            <span key={`${role}-${roleIndex}`} className="profile-tag">{role}</span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="profile-tag muted">Add preferred roles to this CV</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="form-row">
-                                            <label>Phone
-                                                <input type="text" value={p.phone || ''} onChange={e => {
-                                                    const updated = { ...p, phone: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
-                                            <label>LinkedIn
-                                                <input type="text" value={p.linkedin || ''} onChange={e => {
-                                                    const updated = { ...p, linkedin: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
-                                        </div>
-                                        <div className="form-row">
-                                            <label>GitHub
-                                                <input type="text" value={p.github || ''} onChange={e => {
-                                                    const updated = { ...p, github: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
-                                            <label>Portfolio
-                                                <input type="text" value={p.portfolio || ''} onChange={e => {
-                                                    const updated = { ...p, portfolio: e.target.value };
-                                                    StorageService.saveProfile(updated).then(loadData);
-                                                }} />
-                                            </label>
+
+                                        <div className="profile-details-form">
+                                            <div className="profile-details-group">
+                                                <div className="profile-group-title">Contact Details</div>
+                                                <div className="profile-fields-grid">
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">Full Name</span>
+                                                        <input
+                                                            type="text"
+                                                            value={p.full_name || ''}
+                                                            onChange={e => updateProfile(p, { full_name: e.target.value })}
+                                                            placeholder="Jane Appleseed"
+                                                        />
+                                                    </label>
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">Email</span>
+                                                        <input
+                                                            type="email"
+                                                            value={p.email || ''}
+                                                            onChange={e => updateProfile(p, { email: e.target.value })}
+                                                            placeholder="jane@example.com"
+                                                        />
+                                                    </label>
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">Phone</span>
+                                                        <input
+                                                            type="text"
+                                                            value={p.phone || ''}
+                                                            onChange={e => updateProfile(p, { phone: e.target.value })}
+                                                            placeholder="+1 555 123 4567"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div className="profile-details-group">
+                                                <div className="profile-group-title">Links</div>
+                                                <div className="profile-fields-grid">
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">LinkedIn</span>
+                                                        <input
+                                                            type="text"
+                                                            value={p.linkedin || ''}
+                                                            onChange={e => updateProfile(p, { linkedin: e.target.value })}
+                                                            placeholder="linkedin.com/in/..."
+                                                        />
+                                                    </label>
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">GitHub</span>
+                                                        <input
+                                                            type="text"
+                                                            value={p.github || ''}
+                                                            onChange={e => updateProfile(p, { github: e.target.value })}
+                                                            placeholder="github.com/username"
+                                                        />
+                                                    </label>
+                                                    <label className="profile-field">
+                                                        <span className="profile-field-label">Portfolio</span>
+                                                        <input
+                                                            type="text"
+                                                            value={p.portfolio || ''}
+                                                            onChange={e => updateProfile(p, { portfolio: e.target.value })}
+                                                            placeholder="https://"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -433,10 +528,12 @@ const Options = () => {
                                     <div className="form-group">
                                         <label>Min Salary</label>
                                         <input
-                                            type="number"
-                                            value={prefs.salary_min}
-                                            onChange={e => setPrefs({ ...prefs, salary_min: Number(e.target.value) })}
-                                            step="1000"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={salaryMinInput}
+                                            onChange={e => handleSalaryMinInputChange(e.target.value)}
+                                            placeholder="e.g. 120000"
                                         />
                                     </div>
                                     <div className="form-group">
