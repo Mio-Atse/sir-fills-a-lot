@@ -10,6 +10,7 @@ import './ChatWidget.css';
 
 const mascotIdleIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
 const mascotReadyIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-mascot-ready-icon.png');
+const mascotReadySprite = getExtensionAssetUrl('icons/ready_sprite.png');
 const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
 
 const ChatWidget = () => {
@@ -212,7 +213,11 @@ const ChatWidget = () => {
 
     return (
         <>
-            <img src={mascotReadyIcon} alt="Sir Fills-A-Lot Mascot" className="sf-widget-mascot" />
+            <div
+                className="sf-widget-mascot"
+                style={{ backgroundImage: `url(${mascotReadySprite})` }}
+                aria-label="Sir Fills-A-Lot Mascot"
+            />
             <div className="sf-widget-panel">
                 <div className="sf-widget-header">
                     <div className="sf-header-brand">
