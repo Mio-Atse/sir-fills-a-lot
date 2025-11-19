@@ -6,7 +6,7 @@ import './Popup.css';
 import { getExtensionAssetUrl } from '../utils/assetPaths';
 import { Settings, MousePointerClick, ClipboardPaste } from 'lucide-react';
 
-const mascotIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
+const mascotIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
 
 const Popup = () => {
     const [hasProfile, setHasProfile] = useState(false);
