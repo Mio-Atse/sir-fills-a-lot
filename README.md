@@ -1,4 +1,4 @@
-# Job Helper Extension
+#  Sir Fills A Lot
 
 An open-source Chrome Extension (Manifest V3) that assists developers and job seekers in filling out job application forms. It respects privacy by keeping all data local and allowing you to bring your own LLM (Local Ollama or API keys).
 

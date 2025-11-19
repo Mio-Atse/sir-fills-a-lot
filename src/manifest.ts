@@ -2,7 +2,7 @@ import { defineManifest } from '@crxjs/vite-plugin'
 
 export default defineManifest({
     manifest_version: 3,
-    name: 'Job Helper Extension',
+    name: 'Sir Fills-A-Lot',
     version: '1.0.0',
     description: 'Semi-automatic job application filler with local LLM support.',
     permissions: [
