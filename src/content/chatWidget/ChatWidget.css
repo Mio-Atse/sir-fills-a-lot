@@ -51,7 +51,7 @@
     transform: scale(1.05);
 }
 
-/* Mascot on top of widget - Sprite Animation */
+/* Mascot on top of widget - Base styles */
 .sf-widget-mascot {
     position: fixed;
     bottom: 600px;
@@ -61,18 +61,25 @@
     z-index: 2147483648;
     filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.3));
     pointer-events: none;
+}
 
-    /* Sprite sheet setup */
+/* Animated sprite version */
+.sf-widget-mascot-animated {
     background-repeat: no-repeat;
     background-size: 9928px 144px;
-    /* Full sprite sheet width x height */
     background-position: 0 0;
-
-    /* Animations */
     animation:
-        sf-mascot-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-        sf-sprite-animation 1.5s steps(64) infinite;
+        sf-mascot-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+        sf-sprite-animation 1.5s steps(64) forwards;
 }
+
+/* Static image version */
+.sf-widget-mascot-static {
+    width: 146px;
+    height: auto;
+    object-fit: contain;
+}
+
 
 @keyframes sf-mascot-appear {
     from {

@@ -23,6 +23,7 @@ const ChatWidget = () => {
     const [unfilledFields, setUnfilledFields] = useState<FormFieldDescriptor[]>([]);
     const [wizardStep, setWizardStep] = useState<number>(-1);
     const [wizardValue, setWizardValue] = useState('');
+    const [animationComplete, setAnimationComplete] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +34,15 @@ const ChatWidget = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+        if (isOpen && !animationComplete) {
+            const timer = setTimeout(() => {
+                setAnimationComplete(true);
+            }, 1900); // 400ms appear + 1500ms sprite animation
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, animationComplete]);
 
     const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -213,11 +223,19 @@ const ChatWidget = () => {
 
     return (
         <>
-            <div
-                className="sf-widget-mascot"
-                style={{ backgroundImage: `url(${mascotReadySprite})` }}
-                aria-label="Sir Fills-A-Lot Mascot"
-            />
+            {!animationComplete ? (
+                <div
+                    className="sf-widget-mascot sf-widget-mascot-animated"
+                    style={{ backgroundImage: `url(${mascotReadySprite})` }}
+                    aria-label="Sir Fills-A-Lot Mascot"
+                />
+            ) : (
+                <img
+                    src={mascotReadyIcon}
+                    alt="Sir Fills-A-Lot Mascot"
+                    className="sf-widget-mascot sf-widget-mascot-static"
+                />
+            )}
             <div className="sf-widget-panel">
                 <div className="sf-widget-header">
                     <div className="sf-header-brand">
