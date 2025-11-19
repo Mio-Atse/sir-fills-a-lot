@@ -6,12 +6,7 @@ import { UserProfile, UserPreferences, LLMConfig, DEFAULT_LLM_CONFIG, DEFAULT_PR
 import { callLLM } from '../llm/providers';
 import { getCVProfilePrompt } from '../llm/prompts/cvProfilePrompt';
 import './Options.css';
-
-import appIcon from '/icons/sir-fills-a-lot-app-icon.png';
-import profileIconAlt2 from '/icons/sir-fills-a-lot-app-icon-2.png';
-import profileIconAlt4 from '/icons/sir-fills-a-lot-app-icon-4.png';
-import profileIconAlt6 from '/icons/sir-fills-a-lot-app-icon-6.png';
-import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
+import { getExtensionAssetUrl } from '../utils/assetPaths';
 import { Settings, FileText, Sliders, UploadCloud, Save } from 'lucide-react';
 
 // Import pdfjs-dist
@@ -20,6 +15,12 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
+const profileIconAlt2 = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon-2.png');
+const profileIconAlt4 = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon-4.png');
+const profileIconAlt6 = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon-6.png');
+const mascotIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
 
 const profileIconPool = [appIcon, profileIconAlt2, profileIconAlt4, profileIconAlt6];
 

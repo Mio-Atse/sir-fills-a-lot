@@ -5,8 +5,12 @@ import { StorageService } from '../../storage/storage';
 import { callLLM } from '../../llm/providers';
 import { getCoverLetterPrompt } from '../../llm/prompts/coverLetterPrompt';
 import { X, Play, FileText, Send, Sparkles, AlertCircle } from 'lucide-react';
-import mascotIcon from '/icons/sir-fills-a-lot-mascot.png';
+import { getExtensionAssetUrl } from '../../utils/assetPaths';
 import './ChatWidget.css';
+
+const mascotIdleIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
+const mascotReadyIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-mascot-ready-icon.png');
+const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
 
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -201,127 +205,130 @@ const ChatWidget = () => {
     if (!isOpen) {
         return (
             <button className="sf-fab" onClick={toggleOpen}>
-                <img src={mascotIcon} alt="Sir Fills-A-Lot" />
+                <img src={mascotIdleIcon} alt="Sir Fills-A-Lot" />
             </button>
         );
     }
 
     return (
-        <div className="sf-widget-panel">
-            <div className="sf-widget-header">
-                <div className="sf-header-brand">
-                    <div className="sf-header-icon">
-                        <img src={mascotIcon} alt="Mascot" />
+        <>
+            <img src={mascotReadyIcon} alt="Sir Fills-A-Lot Mascot" className="sf-widget-mascot" />
+            <div className="sf-widget-panel">
+                <div className="sf-widget-header">
+                    <div className="sf-header-brand">
+                        <div className="sf-header-icon">
+                            <img src={appIcon} alt="App Icon" />
+                        </div>
+                        <div className="sf-header-text">
+                            <h3>Sir Fills-A-Lot</h3>
+                            <p>Job Assistant</p>
+                        </div>
                     </div>
-                    <div className="sf-header-text">
-                        <h3>Sir Fills-A-Lot</h3>
-                        <p>Job Assistant</p>
-                    </div>
+                    <button onClick={toggleOpen} className="sf-close-btn"><X size={18} /></button>
                 </div>
-                <button onClick={toggleOpen} className="sf-close-btn"><X size={18} /></button>
-            </div>
 
-            <div className="sf-widget-tabs">
-                <button className={activeTab === 'scan' ? 'active' : ''} onClick={() => setActiveTab('scan')}>Scan & Fill</button>
-                <button className={activeTab === 'chat' ? 'active' : ''} onClick={() => setActiveTab('chat')}>Chat</button>
-            </div>
+                <div className="sf-widget-tabs">
+                    <button className={activeTab === 'scan' ? 'active' : ''} onClick={() => setActiveTab('scan')}>Scan & Fill</button>
+                    <button className={activeTab === 'chat' ? 'active' : ''} onClick={() => setActiveTab('chat')}>Chat</button>
+                </div>
 
-            <div className="sf-widget-content">
-                {status && <div className="sf-status-bar"><Sparkles size={12} /> {status}</div>}
+                <div className="sf-widget-content">
+                    {status && <div className="sf-status-bar"><Sparkles size={12} /> {status}</div>}
 
-                {activeTab === 'scan' && (
-                    <div className="sf-scan-panel">
-                        <div className="sf-cta-group">
-                            <button className="sf-btn-primary" onClick={handleScan}>
-                                <Play size={16} /> Scan & Auto-Fill
-                            </button>
-
-                            <button className="sf-btn-secondary" onClick={generateCoverLetter}>
-                                <FileText size={16} /> Generate Cover Letter
-                            </button>
-                        </div>
-
-                        <div className="sf-fields-list">
-                            <h4>Detected Fields ({fields.length})</h4>
-                            <ul>
-                                {fields.map((f, i) => (
-                                    <li key={i} className="sf-field-item">
-                                        <div className="sf-field-info">
-                                            <span className="sf-field-label">{f.label || f.name}</span>
-                                            <span className="sf-field-type">{f.predictedType}</span>
-                                        </div>
-                                        <div className="sf-field-status">
-                                            {/* Placeholder for status icon */}
-                                            <div className="sf-status-dot"></div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'chat' && (
-                    <div className="sf-chat-panel">
-                        <div className="sf-messages">
-                            {messages.map((m, i) => (
-                                <div key={i} className={`sf-msg-row ${m.role}`}>
-                                    {m.role === 'assistant' && (
-                                        <div className="sf-msg-avatar">
-                                            <img src={mascotIcon} alt="Bot" />
-                                        </div>
-                                    )}
-                                    <div className={`sf-msg-bubble ${m.role}`}>
-                                        {m.content}
-                                    </div>
-                                </div>
-                            ))}
-
-                            {wizardStep >= 0 && unfilledFields[wizardStep] && (
-                                <div className="sf-wizard-card">
-                                    <div className="sf-wizard-header">
-                                        <AlertCircle size={16} className="sf-wizard-icon" />
-                                        <span>Missing Field</span>
-                                    </div>
-                                    <p className="sf-wizard-label">
-                                        {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name}
-                                    </p>
-                                    <form onSubmit={handleWizardSubmit}>
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            value={wizardValue}
-                                            onChange={e => setWizardValue(e.target.value)}
-                                            placeholder="Enter value..."
-                                            className="sf-wizard-input"
-                                        />
-                                        <div className="sf-wizard-actions">
-                                            <button type="submit" className="sf-btn-sm-primary">Fill</button>
-                                            <button type="button" onClick={skipWizardStep} className="sf-btn-sm-secondary">Skip</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {wizardStep === -1 && (
-                            <form onSubmit={handleChatSubmit} className="sf-chat-input-area">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={e => setInput(e.target.value)}
-                                    placeholder="Ask me anything..."
-                                />
-                                <button type="submit" disabled={!input.trim()}>
-                                    <Send size={16} />
+                    {activeTab === 'scan' && (
+                        <div className="sf-scan-panel">
+                            <div className="sf-cta-group">
+                                <button className="sf-btn-primary" onClick={handleScan}>
+                                    <Play size={16} /> Scan & Auto-Fill
                                 </button>
-                            </form>
-                        )}
-                    </div>
-                )}
+
+                                <button className="sf-btn-secondary" onClick={generateCoverLetter}>
+                                    <FileText size={16} /> Generate Cover Letter
+                                </button>
+                            </div>
+
+                            <div className="sf-fields-list">
+                                <h4>Detected Fields ({fields.length})</h4>
+                                <ul>
+                                    {fields.map((f, i) => (
+                                        <li key={i} className="sf-field-item">
+                                            <div className="sf-field-info">
+                                                <span className="sf-field-label">{f.label || f.name}</span>
+                                                <span className="sf-field-type">{f.predictedType}</span>
+                                            </div>
+                                            <div className="sf-field-status">
+                                                {/* Placeholder for status icon */}
+                                                <div className="sf-status-dot"></div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'chat' && (
+                        <div className="sf-chat-panel">
+                            <div className="sf-messages">
+                                {messages.map((m, i) => (
+                                    <div key={i} className={`sf-msg-row ${m.role}`}>
+                                        {m.role === 'assistant' && (
+                                            <div className="sf-msg-avatar">
+                                                <img src={mascotReadyIcon} alt="Bot" />
+                                            </div>
+                                        )}
+                                        <div className={`sf-msg-bubble ${m.role}`}>
+                                            {m.content}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {wizardStep >= 0 && unfilledFields[wizardStep] && (
+                                    <div className="sf-wizard-card">
+                                        <div className="sf-wizard-header">
+                                            <AlertCircle size={16} className="sf-wizard-icon" />
+                                            <span>Missing Field</span>
+                                        </div>
+                                        <p className="sf-wizard-label">
+                                            {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name}
+                                        </p>
+                                        <form onSubmit={handleWizardSubmit}>
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={wizardValue}
+                                                onChange={e => setWizardValue(e.target.value)}
+                                                placeholder="Enter value..."
+                                                className="sf-wizard-input"
+                                            />
+                                            <div className="sf-wizard-actions">
+                                                <button type="submit" className="sf-btn-sm-primary">Fill</button>
+                                                <button type="button" onClick={skipWizardStep} className="sf-btn-sm-secondary">Skip</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            {wizardStep === -1 && (
+                                <form onSubmit={handleChatSubmit} className="sf-chat-input-area">
+                                    <input
+                                        type="text"
+                                        value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        placeholder="Ask me anything..."
+                                    />
+                                    <button type="submit" disabled={!input.trim()}>
+                                        <Send size={16} />
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

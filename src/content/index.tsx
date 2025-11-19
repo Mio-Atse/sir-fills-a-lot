@@ -37,7 +37,7 @@ function activateCaptureMode() {
 
     // Create mascot image
     const img = document.createElement('img');
-    img.src = chrome.runtime.getURL('icons/sir-fills-a-lot-mascot.png');
+    img.src = chrome.runtime.getURL('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
 
     const text = document.createElement('span');
     text.textContent = 'Click on the job description text block';

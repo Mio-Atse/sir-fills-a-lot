@@ -30,7 +30,7 @@ export default defineManifest({
     ],
     web_accessible_resources: [
         {
-            resources: ['src/content/chatWidget/ChatWidget.css'],
+            resources: ['src/content/chatWidget/ChatWidget.css', 'icons/**'],
             matches: ['<all_urls>'],
         },
     ],
