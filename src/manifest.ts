@@ -26,6 +26,7 @@ export default defineManifest({
         {
             matches: ['<all_urls>'],
             js: ['src/content/index.tsx'],
+            all_frames: true,
         },
     ],
     web_accessible_resources: [
