@@ -63,37 +63,6 @@ Load the generated `dist/` into Chrome via Load unpacked (steps above). For hot 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - CI: run `npm run build` before pushing. A simple GitHub Actions workflow can run `npm ci` and `npm run build` on pull requests (see below).
 
-## GitHub Actions (CI) – quick setup
-
-1. In GitHub, go to **Actions** → **New workflow** → **set up a workflow yourself**.
-2. Use Node 20 and add steps:
-   ```yaml
-   name: CI
-   on:
-     pull_request:
-     push:
-       branches: [main]
-   jobs:
-     build:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - uses: actions/setup-node@v4
-           with:
-             node-version: 20
-             cache: 'npm'
-         - run: npm ci
-         - run: npm run build
-   ```
-3. Commit the workflow to `.github/workflows/ci.yml`. Every PR/push will now build the extension bundle.
-
-## Release checklist
-
-- Bump the version in `src/manifest.ts`.
-- Run `npm run build`.
-- Zip the `dist/` folder and attach it to a GitHub Release for non-developer installs.
-- Update README if user-facing behavior changes.
-
 ## License
 
 MIT License. See [LICENSE](LICENSE).
