@@ -20,8 +20,9 @@
 
 .sf-fab {
     position: fixed;
-    bottom: 20px;
+    top: 50%;
     right: 20px;
+    transform: translateY(-50%);
     width: 84px;
     height: 84px;
     border-radius: 0;
@@ -48,7 +49,7 @@
 }
 
 .sf-fab:hover {
-    transform: scale(1.05);
+    transform: translateY(-55%) scale(1.05);
 }
 
 /* Mascot on top of widget - Base styles */
