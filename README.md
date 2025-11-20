@@ -58,7 +58,7 @@ Load the generated `dist/` into Chrome via Load unpacked (steps above). For hot 
 
 ## Contributing
 
-![Sir Fills A Lot UI preview](_images/design-1to1.png)
+![Sir Fills A Lot UI preview](_images/design-new.png)
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - CI: run `npm run build` before pushing. A simple GitHub Actions workflow can run `npm ci` and `npm run build` on pull requests (see below).
