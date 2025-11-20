@@ -1,104 +1,97 @@
-#  Sir Fills A Lot
+# Sir Fills A Lot
 
-An open-source Chrome Extension (Manifest V3) that assists developers and job seekers in filling out job application forms. It respects privacy by keeping all data local and allowing you to bring your own LLM (Local Ollama or API keys).
+Open-source Chrome (MV3) extension that scans job application forms, auto-fills them from your CV, and can generate cover letters. Works offline with local LLMs (Ollama) or with your own API keys for OpenAI/Groq/Gemini. All data stays in `chrome.storage.local` and keys/CV text are encrypted at rest inside the extension.
 
-## Features
+## Highlights
 
-- **📄 CV Parsing**: Upload your PDF/Text CV; the extension extracts a structured profile using a "Big" LLM.
-- **🔒 Privacy First**: All data (CVs, profiles, keys) is stored in `chrome.storage.local`. No remote backend.
-- **🤖 LLM Support**:
-  - **Local**: Ollama (e.g., Llama 3).
-  - **Cloud**: OpenAI, Groq, Gemini (User API keys required).
-- **📝 Job Description Capture**: Right-click to save job descriptions or use the "Pick from page" overlay.
-- **⚡ Smart Form Filling**:
-  - Heuristic scanning of form fields.
-  - Auto-fill from your profile.
-  - **Chat Widget**: Ask "What's my notice period?" and it fills the field.
-- **✍️ Cover Letter Generation**: Generates tailored cover letters based on your CV + Job Description.
-- **🔄 Multi-page Support**: Tracks application sessions across pages.
+- CV parsing (PDF/Text) into structured profiles.
+- Job description capture via right-click or on-page overlay.
+- Heuristic form scanner with wizard for missing fields.
+- Cover-letter generation from your profile + captured job description.
+- Local mode (Ollama) or API mode with preset model dropdowns and explicit consent for cloud calls.
 
-## Architecture
+## How to install (non-developers)
 
-- **Manifest V3**: Uses Service Worker (`background/index.ts`) for context menus and state.
-- **Content Script**: Injects a React-based **Chat Widget** (`content/chatWidget`) into job pages.
-- **Storage**: `chrome.storage.local` acts as the single source of truth for Profiles, Preferences, and Sessions.
-- **LLM Layer**: `src/llm/providers.ts` abstracts the difference between Ollama, OpenAI, etc.
+1. Download the latest release zip (containing the `dist/` folder) from GitHub Releases.
+2. Unzip it locally.
+3. Open Chrome and go to `chrome://extensions`.
+4. Enable **Developer mode** (top-right toggle).
+5. Click **Load unpacked** and select the unzipped `dist` folder.
+6. Pin the extension if you want quick access.
 
-## Installation (Developer Mode)
+## Developer setup
 
-1. **Clone & Install**
-   ```bash
-   git clone <repo-url>
-   cd job-helper-extension
-   npm install
+```bash
+git clone <repo-url>
+cd sir-fills-a-lot
+npm install
+npm run build   # outputs dist/
+```
+
+Load the generated `dist/` into Chrome via Load unpacked (steps above). For hot reload during development, run `npm run dev`.
+
+## Configure the extension
+
+1. Click the extension icon → **Settings** (or right-click → Options).
+2. LLM mode:
+   - **Local (Ollama)**: pick a preset command (e.g., `ollama run llama3:8b`). Small-model selection is ignored; big model is used for all calls.
+   - **API Provider**: choose OpenAI, Groq, or Gemini; enter your API key; pick models from the dropdowns or supply a custom model; check the consent box to allow data to be sent to the provider.
+3. Upload your CV (PDF/Text) to create a profile; the raw text and base64 are encrypted at rest in storage.
+4. Set preferences (locations, remote, salary, etc.).
+
+## Using it
+
+1. Capture a job description:
+   - Right-click selected text → **Save selection as Job Description**, or
+   - In the popup, click **Pick Job Description** and click the description block on the page, or
+   - Paste text into the popup’s **Paste Job Description** flow.
+2. Open a job application form; the floating widget appears.
+3. Click **Scan & Auto-Fill**. The wizard walks you through any missing fields.
+4. Click **Generate Cover Letter** once a profile and job description exist.
+5. Use the **Chat** tab for quick answers and to fill remaining text boxes.
+
+## Data & permissions
+
+- Data is stored locally in `chrome.storage.local`; CV text and API keys are encrypted at rest. Your data only leaves the browser if you enable API mode and consent to cloud LLM calls.
+- The content script currently runs on all pages to detect job forms; permissions remain broad and should be narrowed in a future update.
+- Bring your own API keys; none are bundled.
+
+## Contributing
+
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+- CI: run `npm run build` before pushing. A simple GitHub Actions workflow can run `npm ci` and `npm run build` on pull requests (see below).
+
+## GitHub Actions (CI) – quick setup
+
+1. In GitHub, go to **Actions** → **New workflow** → **set up a workflow yourself**.
+2. Use Node 20 and add steps:
+   ```yaml
+   name: CI
+   on:
+     pull_request:
+     push:
+       branches: [main]
+   jobs:
+     build:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+         - uses: actions/setup-node@v4
+           with:
+             node-version: 20
+             cache: 'npm'
+         - run: npm ci
+         - run: npm run build
    ```
+3. Commit the workflow to `.github/workflows/ci.yml`. Every PR/push will now build the extension bundle.
 
-2. **Build**
-   ```bash
-   npm run build
-   ```
-   This uses Vite + CRXJS to bundle the extension into `dist/`.
+## Release checklist
 
-3. **Load in Chrome**
-   - Open `chrome://extensions`.
-   - Enable **Developer mode** (top right).
-   - Click **Load unpacked**.
-   - Select the `dist` folder.
-
-## Configuration
-
-1. **Open Options**: Click the extension icon -> "Settings" (or right-click icon -> Options).
-2. **LLM Setup**:
-   - Choose **Local (Ollama)** if you have Ollama running (`ollama run llama3`).
-   - Or choose **API Provider** and enter your OpenAI/Groq/Gemini key.
-   - Set model names (e.g., Big: `llama3:70b` / `gpt-4`, Small: `llama3:8b` / `gpt-3.5-turbo`).
-3. **CV Upload**:
-   - Go to "CV & Profile".
-   - Upload your CV (Text or PDF).
-   - Wait for the LLM to parse it into a structured JSON profile.
-4. **Preferences**:
-   - Set your desired salary, location, remote preference, etc.
-
-## Usage
-
-1. **Capture Job Description**:
-   - Go to a job listing (e.g., LinkedIn, Greenhouse page).
-   - Select the job description text -> Right-click -> **Save selection as Job Description**.
-   - OR click the extension icon -> **Pick Job Description from Page** -> Click the text block.
-
-2. **Fill Application**:
-   - Go to the "Apply" page.
-   - Click the floating **Sir Fills A Lot** button (bottom-right).
-   - Click **Scan & Fill**.
-   - The extension will try to fill name, email, LinkedIn, etc.
-   - Click **Generate Cover Letter** to draft and fill the cover letter field.
-
-3. **Chat Assist**:
-   - If a field is missed (e.g., "What is your favorite color?"), open the **Chat** tab.
-   - Ask: "My favorite color is Blue".
-   - The extension can help answer or you can just type it. (Future: Chat can auto-fill specific fields on command).
-
-## Privacy & Security
-
-- **No Analytics**: We do not track you.
-- **Local Storage**: Your CV and keys never leave your browser storage, except to be sent to the LLM provider you configured.
-- **You are in control**: You must provide your own API keys.
-
-## Development
-
-- **Dev Server**: `npm run dev` (Vite HMR).
-- **Adding Providers**: Edit `src/llm/providers.ts`.
-- **Heuristics**: Improve field detection in `src/content/formScanner.ts`.
-
-## Limitations & Roadmap
-
-- **PDF Parsing**: Currently basic text extraction; complex layouts might need better parsing.
-- **Form Mapping**: Heuristics are simple regex-based.
-- **Roadmap**:
-  - Site-specific adapters (Workday, Lever, Greenhouse).
-  - Better "Apply with LinkedIn" integration.
-  - Resume tailoring (generating a specific PDF for the job).
+- Bump the version in `src/manifest.ts`.
+- Run `npm run build`.
+- Zip the `dist/` folder and attach it to a GitHub Release for non-developer installs.
+- Update README if user-facing behavior changes.
 
 ## License
 
-MIT License.
+MIT License. See [LICENSE](LICENSE).
