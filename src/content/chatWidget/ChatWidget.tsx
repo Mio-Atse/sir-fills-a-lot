@@ -28,6 +28,8 @@ const ChatWidget = () => {
     const [animationComplete, setAnimationComplete] = useState(false);
     const [isSwinging, setIsSwinging] = useState(false);
     const [swingComplete, setSwingComplete] = useState(false);
+    const [speechText, setSpeechText] = useState('');
+    const [showBubble, setShowBubble] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +46,15 @@ const ChatWidget = () => {
             setAnimationComplete(false);
             setIsSwinging(false);
             setSwingComplete(false);
+            setShowBubble(false);
+        } else {
+            // Show "Ready" bubble
+            setSpeechText("Don't forget to pick or copy/paste job description!");
+            setShowBubble(true);
+            const timer = setTimeout(() => {
+                setShowBubble(false);
+            }, 3000);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
@@ -76,6 +87,14 @@ const ChatWidget = () => {
     const handleScan = async () => {
         setIsSwinging(true);
         setSwingComplete(false);
+
+        // Show "Scan" bubble
+        setSpeechText("One extension to rule them all!");
+        setShowBubble(true);
+        setTimeout(() => {
+            setShowBubble(false);
+        }, 2000);
+
         setStatus('Scanning form...');
         const found = scanForm();
         setFields(found);
@@ -240,6 +259,11 @@ const ChatWidget = () => {
 
     return (
         <>
+            {showBubble && (
+                <div className="sf-speech-bubble">
+                    {speechText}
+                </div>
+            )}
             {isSwinging ? (
                 <div
                     className="sf-widget-mascot sf-widget-mascot-swing"
