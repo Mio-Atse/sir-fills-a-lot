@@ -1,6 +1,6 @@
 // File: src/content/chatWidget/ChatWidget.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { scanForm, fillField, FormFieldDescriptor } from '../formScanner';
+import { scanForm, fillField, FormFieldDescriptor, findNextButton } from '../formScanner';
 import { StorageService } from '../../storage/storage';
 import { callLLM } from '../../llm/providers';
 import { getCoverLetterPrompt } from '../../llm/prompts/coverLetterPrompt';
@@ -14,8 +14,12 @@ const mascotReadySprite = getExtensionAssetUrl('icons/ready_sprite.png');
 const mascotSwingSprite = getExtensionAssetUrl('icons/swing_sprite.png');
 const mascotSwingLastFrame = getExtensionAssetUrl('icons/swing_sprite_last_position.png');
 const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
+const SHOW_WIDGET_MSG = 'SIRFILLS_SHOW_WIDGET';
+const HIDE_WIDGET_MSG = 'SIRFILLS_HIDE_WIDGET';
 
 const ChatWidget = () => {
+    const visibilityState = window as Window & { __sirfillsLastVisibility?: boolean };
+    const [isVisible, setIsVisible] = useState<boolean>(visibilityState.__sirfillsLastVisibility ?? false);
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'scan' | 'chat'>('scan');
     const [fields, setFields] = useState<FormFieldDescriptor[]>([]);
@@ -42,6 +46,10 @@ const ChatWidget = () => {
     }, [messages]);
 
     useEffect(() => {
+        setIsVisible(visibilityState.__sirfillsLastVisibility ?? false);
+    }, []);
+
+    useEffect(() => {
         if (!isOpen) {
             setAnimationComplete(false);
             setIsSwinging(false);
@@ -58,8 +66,27 @@ const ChatWidget = () => {
         }
     }, [isOpen]);
 
-    // We will use onAnimationEnd instead of setTimeout for better sync
+    useEffect(() => {
+        const handleMessage = (message: any) => {
+            if (message.type === SHOW_WIDGET_MSG) {
+                setIsVisible(true);
+            } else if (message.type === HIDE_WIDGET_MSG) {
+                setIsVisible(false);
+            }
+        };
 
+        chrome.runtime.onMessage.addListener(handleMessage);
+        return () => chrome.runtime.onMessage.removeListener(handleMessage);
+    }, []);
+
+    useEffect(() => {
+        visibilityState.__sirfillsLastVisibility = isVisible;
+        if (!isVisible) {
+            setIsOpen(false);
+        }
+    }, [isVisible]);
+
+    // We will use onAnimationEnd instead of setTimeout for better sync
     useEffect(() => {
         if (isSwinging) {
             const timer = setTimeout(() => {
@@ -84,41 +111,18 @@ const ChatWidget = () => {
         return new File([u8arr], filename, { type: mime });
     };
 
-    const handleScan = async () => {
-        setIsSwinging(true);
-        setSwingComplete(false);
-
-        // Show "Scan" bubble
-        setSpeechText("One extension to rule them all!");
-        setShowBubble(true);
-        setTimeout(() => {
-            setShowBubble(false);
-        }, 2000);
-
-        setStatus('Scanning form...');
+    const processCurrentPage = async (profile: any, prefs: any): Promise<{ filled: number, missing: FormFieldDescriptor[] }> => {
         const found = scanForm();
-        setFields(found);
-        setStatus(`Found ${found.length} fields.`);
-
-        // Auto-fill basic fields from profile
-        const profiles = await StorageService.getProfiles();
-        const defaultId = await StorageService.getDefaultProfileId();
-        const profile = profiles.find(p => p.id === defaultId) || profiles[0];
-        const prefs = await StorageService.getPreferences();
-
-        if (!profile) {
-            setStatus('No profile found. Please configure in options.');
-            return;
-        }
+        setFields(found); // Update UI with current fields
 
         let filledCount = 0;
         const missing: FormFieldDescriptor[] = [];
 
         for (const f of found) {
-            if (f.predictedType === 'unknown') {
-                missing.push(f);
-                continue;
-            }
+            // if (f.predictedType === 'unknown') {
+            //     missing.push(f);
+            //     continue;
+            // }
 
             let val: string | number | boolean | File | undefined;
 
@@ -135,11 +139,52 @@ const ChatWidget = () => {
                 case 'salary_expectation': val = prefs.salary_min; break;
                 case 'relocation': val = prefs.relocation_ok; break;
                 case 'remote': val = prefs.remote_only; break;
+                case 'preferred_roles': val = profile.preferred_roles; break;
                 case 'resume_upload':
                     if (profile.resume_data && profile.resume_name) {
                         val = base64ToFile(profile.resume_data, profile.resume_name);
                     }
                     break;
+                case 'long_text':
+                    // Use LLM to generate text
+                    try {
+                        console.log("Calling LLM for field:", f.label);
+                        val = await callLLM({
+                            variant: 'small',
+                            messages: [
+                                { role: 'system', content: 'You are a helpful job application assistant. Generate a professional and concise answer for the form field based on the user profile. Do not include any explanations, just the answer.' },
+                                { role: 'user', content: `Field Label: ${f.label}\n\nUser Profile: ${JSON.stringify(profile)}\n\nUser Preferences: ${JSON.stringify(prefs)}` }
+                            ]
+                        });
+                        console.log("LLM Response:", val);
+                        if (typeof val === 'string') val = val.trim().replace(/^["']|["']$/g, ''); // Clean quotes
+                    } catch (error) {
+                        console.error("LLM generation failed for field", f.label, error);
+                    }
+                    break;
+            }
+
+            // Fallback for unknown text fields - Try LLM
+            if (val === undefined && f.predictedType === 'unknown') {
+                const el = f.element;
+                const isText = el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && (el.type === 'text' || el.type === 'email' || el.type === 'tel' || el.type === 'url'));
+
+                if (isText) {
+                    try {
+                        console.log("Attempting LLM fill for unknown field:", f.label);
+                        val = await callLLM({
+                            variant: 'small',
+                            messages: [
+                                { role: 'system', content: 'You are a helpful job application assistant. Generate a professional and concise answer for the form field based on the user profile. Do not include any explanations, just the answer.' },
+                                { role: 'user', content: `Field Label: ${f.label}\n\nUser Profile: ${JSON.stringify(profile)}\n\nUser Preferences: ${JSON.stringify(prefs)}` }
+                            ]
+                        });
+                        console.log("LLM Response (Unknown):", val);
+                        if (typeof val === 'string') val = val.trim().replace(/^["']|["']$/g, '');
+                    } catch (error) {
+                        // Ignore error, just leave empty
+                    }
+                }
             }
 
             if (val !== undefined && val !== '') {
@@ -149,13 +194,68 @@ const ChatWidget = () => {
                 missing.push(f);
             }
         }
-        setStatus(`Filled ${filledCount} fields.`);
+        return { filled: filledCount, missing };
+    };
 
-        if (missing.length > 0) {
-            setUnfilledFields(missing);
+    const handleScan = async () => {
+        setIsSwinging(true);
+        setSwingComplete(false);
+
+        // Show "Scan" bubble
+        setSpeechText("One extension to rule them all!");
+        setShowBubble(true);
+        setTimeout(() => {
+            setShowBubble(false);
+        }, 2000);
+
+        setStatus('Loading profile...');
+        const profiles = await StorageService.getProfiles();
+        const defaultId = await StorageService.getDefaultProfileId();
+        const profile = profiles.find(p => p.id === defaultId) || profiles[0];
+        const prefs = await StorageService.getPreferences();
+
+        if (!profile) {
+            setStatus('No profile found. Please configure in options.');
+            return;
+        }
+
+        let totalFilled = 0;
+        let step = 1;
+        const maxSteps = 5;
+        let finalMissing: FormFieldDescriptor[] = [];
+
+        while (step <= maxSteps) {
+            setStatus(`Scanning page ${step}...`);
+
+            // Wait a bit for any dynamic content
+            await new Promise(r => setTimeout(r, 1000));
+
+            const { filled, missing } = await processCurrentPage(profile, prefs);
+            totalFilled += filled;
+            finalMissing = missing;
+
+            setStatus(`Filled ${filled} fields on page ${step}.`);
+
+            // Check for Next button
+            const nextBtn = findNextButton();
+            if (nextBtn) {
+                setStatus(`Clicking Next (Page ${step})...`);
+                nextBtn.click();
+                step++;
+                // Wait for navigation/render
+                await new Promise(r => setTimeout(r, 3000));
+            } else {
+                break; // No next button, we are done
+            }
+        }
+
+        setStatus(`Done! Filled ${totalFilled} fields total.`);
+
+        if (finalMissing.length > 0) {
+            setUnfilledFields(finalMissing);
             setWizardStep(0);
             setActiveTab('chat');
-            setMessages(prev => [...prev, { role: 'assistant', content: `I found ${missing.length} fields I couldn't fill automatically. Let's go through them.` }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: `I finished scanning. I found ${finalMissing.length} fields on the last page I couldn't fill automatically.` }]);
         }
     };
 
@@ -248,6 +348,10 @@ const ChatWidget = () => {
             setStatus(`Error: ${err.message}`);
         }
     };
+
+    if (!isVisible) {
+        return null;
+    }
 
     if (!isOpen) {
         return (
