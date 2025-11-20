@@ -90,6 +90,49 @@ const Options = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
     const [salaryMinInput, setSalaryMinInput] = useState('');
+    const [showCustomBig, setShowCustomBig] = useState(false);
+    const [showCustomSmall, setShowCustomSmall] = useState(false);
+
+    const MODEL_OPTIONS: Record<string, { big: string[]; small: string[] }> = {
+        gemini: {
+            big: ['gemini-3-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'],
+            small: ['gemini-2.5-flash-lite'],
+        },
+        openai: {
+            big: ['gpt-5.1', 'gpt-4.1', 'gpt-4o'],
+            small: ['gpt-5-nano', 'gpt-oss-120b'],
+        },
+        groq: {
+            big: ['moonshotai/kimi-k2-instruct-0905', 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile'],
+            small: ['llama-3.1-8b-instant', 'openai/gpt-oss-20b'],
+        },
+        ollama: {
+            big: ['ollama run llama3:8b', 'ollama run qwen:14b', 'ollama run mistral:7b', 'ollama run phi3:3.8b-mini-instruct'],
+            small: [],
+        },
+    };
+
+    const providerKey = llmConfig.mode === 'local' ? 'ollama' : llmConfig.provider || '';
+
+    useEffect(() => {
+        const provider = providerKey;
+        const opts = provider ? MODEL_OPTIONS[provider] : undefined;
+        if (!opts) return;
+
+        // Auto-select defaults if current values are empty
+        if (!showCustomBig && (!llmConfig.models.bigModel || !opts.big.includes(llmConfig.models.bigModel))) {
+            setLlmConfig(prev => ({ ...prev, models: { ...prev.models, bigModel: opts.big[0] } }));
+        }
+        if (provider !== 'ollama') {
+            if (!showCustomSmall && (!llmConfig.models.smallModel || !opts.small.includes(llmConfig.models.smallModel))) {
+                setLlmConfig(prev => ({ ...prev, models: { ...prev.models, smallModel: opts.small[0] } }));
+            }
+        } else {
+            // For Ollama, small model is not used; mirror big to keep downstream logic simple
+            setLlmConfig(prev => ({ ...prev, models: { ...prev.models, smallModel: prev.models.bigModel } }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [providerKey, showCustomBig, showCustomSmall]);
 
     useEffect(() => {
         loadData();
@@ -107,6 +150,11 @@ const Options = () => {
         setSalaryMinInput(pr.salary_min ? String(pr.salary_min) : '');
         setLlmConfig(l);
         setDefaultProfileId(defaultId || (p[0]?.id ?? null));
+
+        const provider = l.mode === 'local' ? 'ollama' : l.provider || '';
+        const opts = provider ? MODEL_OPTIONS[provider] : undefined;
+        setShowCustomBig(!(opts?.big || []).includes(l.models.bigModel));
+        setShowCustomSmall(provider === 'ollama' ? false : !(opts?.small || []).includes(l.models.smallModel));
     };
 
     const updateProfile = (profile: UserProfile, changes: Partial<UserProfile>) => {
@@ -191,7 +239,12 @@ const Options = () => {
             setStatus('Please confirm data sharing consent before using cloud providers.');
             return;
         }
-        await StorageService.saveLLMConfig(llmConfig);
+        const normalized =
+            llmConfig.mode === 'local'
+                ? { ...llmConfig, models: { ...llmConfig.models, smallModel: llmConfig.models.bigModel } }
+                : llmConfig;
+        await StorageService.saveLLMConfig(normalized);
+        setLlmConfig(normalized);
         setStatus('LLM Config saved.');
     };
 
@@ -240,7 +293,17 @@ const Options = () => {
                                             type="radio"
                                             value="local"
                                             checked={llmConfig.mode === 'local'}
-                                            onChange={() => setLlmConfig({ ...llmConfig, mode: 'local' })}
+                                            onChange={() => {
+                                                const defaultBig = MODEL_OPTIONS.ollama.big[0];
+                                                setShowCustomBig(false);
+                                                setShowCustomSmall(false);
+                                                setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    mode: 'local',
+                                                    provider: null,
+                                                    models: { ...prev.models, bigModel: defaultBig, smallModel: defaultBig }
+                                                }));
+                                            }}
                                         />
                                         Local (Ollama)
                                     </label>
@@ -249,7 +312,9 @@ const Options = () => {
                                             type="radio"
                                             value="api"
                                             checked={llmConfig.mode === 'api'}
-                                            onChange={() => setLlmConfig({ ...llmConfig, mode: 'api' })}
+                                            onChange={() => {
+                                                setLlmConfig(prev => ({ ...prev, mode: 'api' }));
+                                            }}
                                         />
                                         API Provider
                                     </label>
@@ -272,13 +337,29 @@ const Options = () => {
                                     <div className="form-group">
                                         <label>Provider</label>
                                         <select
-                                            value={llmConfig.provider || ''}
-                                            onChange={e => setLlmConfig({ ...llmConfig, provider: e.target.value as any })}
-                                        >
-                                            <option value="">Select Provider</option>
-                                            <option value="openai">OpenAI</option>
-                                            <option value="groq">Groq</option>
-                                            <option value="gemini">Gemini</option>
+                                        value={llmConfig.provider || ''}
+                                        onChange={e => {
+                                            const provider = e.target.value as any;
+                                            const defaults = MODEL_OPTIONS[provider] || { big: [''], small: [''] };
+                                            const nextBig = defaults.big[0] || '';
+                                            const nextSmall = defaults.small[0] || '';
+                                            setShowCustomBig(false);
+                                            setShowCustomSmall(false);
+                                            setLlmConfig(prev => ({
+                                                ...prev,
+                                                provider,
+                                                models: {
+                                                    ...prev.models,
+                                                    bigModel: nextBig || prev.models.bigModel,
+                                                    smallModel: provider === 'ollama' ? nextBig || prev.models.bigModel : (nextSmall || prev.models.smallModel)
+                                                }
+                                            }));
+                                        }}
+                                    >
+                                        <option value="">Select Provider</option>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="groq">Groq</option>
+                                        <option value="gemini">Gemini</option>
                                         </select>
                                     </div>
 
@@ -328,21 +409,117 @@ const Options = () => {
 
                             <div className="model-config">
                                 <div className="form-group">
-                                    <label>Big Model Name (e.g. llama3:70b, gpt-4)</label>
-                                    <input
-                                        type="text"
-                                        value={llmConfig.models.bigModel}
-                                        onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, bigModel: e.target.value } })}
-                                    />
+                                    <label>Big Model</label>
+                                    <div className="model-row">
+                                        <select
+                                            disabled={!providerKey}
+                                            value={!showCustomBig ? llmConfig.models.bigModel : ''}
+                                            onChange={e => {
+                                                const value = e.target.value;
+                                                setShowCustomBig(false);
+                                                setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    models: { ...prev.models, bigModel: value, smallModel: providerKey === 'ollama' ? value : prev.models.smallModel }
+                                                }));
+                                            }}
+                                        >
+                                            {(MODEL_OPTIONS[providerKey]?.big || []).map(option => (
+                                                <option key={option} value={option}>{option}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="btn-subtle"
+                                            onClick={() => {
+                                                const next = !showCustomBig;
+                                                setShowCustomBig(next);
+                                                if (!next && providerKey) {
+                                                    const first = MODEL_OPTIONS[providerKey]?.big[0];
+                                                    if (first) {
+                                                        setLlmConfig(prev => ({
+                                                            ...prev,
+                                                            models: { ...prev.models, bigModel: first, smallModel: providerKey === 'ollama' ? first : prev.models.smallModel }
+                                                        }));
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            {showCustomBig ? 'Use dropdown' : 'Custom model'}
+                                        </button>
+                                    </div>
+                                    {showCustomBig && (
+                                        <input
+                                            type="text"
+                                            value={llmConfig.models.bigModel}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    models: { ...prev.models, bigModel: val, smallModel: providerKey === 'ollama' ? val : prev.models.smallModel }
+                                                }));
+                                            }}
+                                            placeholder="Enter custom big model name"
+                                        />
+                                    )}
                                 </div>
-                                <div className="form-group">
-                                    <label>Small Model Name (e.g. llama3:8b, gpt-3.5-turbo)</label>
-                                    <input
-                                        type="text"
-                                        value={llmConfig.models.smallModel}
-                                        onChange={e => setLlmConfig({ ...llmConfig, models: { ...llmConfig.models, smallModel: e.target.value } })}
-                                    />
-                                </div>
+
+                                {providerKey !== 'ollama' && (
+                                    <div className="form-group">
+                                        <label>Small Model</label>
+                                        <div className="model-row">
+                                            <select
+                                                disabled={!providerKey || showCustomSmall}
+                                                value={!showCustomSmall ? llmConfig.models.smallModel : ''}
+                                                onChange={e => {
+                                                    const value = e.target.value;
+                                                    setShowCustomSmall(false);
+                                                    setLlmConfig(prev => ({
+                                                        ...prev,
+                                                        models: { ...prev.models, smallModel: value }
+                                                    }));
+                                                }}
+                                            >
+                                                {(MODEL_OPTIONS[providerKey]?.small || []).map(option => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                className="btn-subtle"
+                                                onClick={() => {
+                                                    const next = !showCustomSmall;
+                                                    setShowCustomSmall(next);
+                                                    if (!next && providerKey) {
+                                                        const first = MODEL_OPTIONS[providerKey]?.small[0];
+                                                        if (first) {
+                                                            setLlmConfig(prev => ({
+                                                                ...prev,
+                                                                models: { ...prev.models, smallModel: first }
+                                                            }));
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                {showCustomSmall ? 'Use dropdown' : 'Custom model'}
+                                            </button>
+                                        </div>
+                                        {showCustomSmall && (
+                                            <input
+                                                type="text"
+                                                value={llmConfig.models.smallModel}
+                                                onChange={e => setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    models: { ...prev.models, smallModel: e.target.value }
+                                                }))}
+                                                placeholder="Enter custom small model name"
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                {providerKey === 'ollama' && (
+                                    <p className="muted">Small model selection is ignored for local mode; the chosen big model is used for all calls.</p>
+                                )}
                             </div>
 
                             <button onClick={saveLLM} className="btn-primary">

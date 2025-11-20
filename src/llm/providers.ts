@@ -126,7 +126,10 @@ async function callGemini(apiKey: string, model: string, messages: LLMMessage[],
 
 export async function callLLM(opts: LLMRequestOptions): Promise<string> {
     const config = await StorageService.getLLMConfig();
-    const model = opts.variant === 'big' ? config.models.bigModel : config.models.smallModel;
+    const model =
+        config.mode === 'local'
+            ? config.models.bigModel
+            : (opts.variant === 'big' ? config.models.bigModel : config.models.smallModel);
 
     if (config.mode === 'local') {
         return callOllama(config, model, opts.messages, opts);
