@@ -22,7 +22,7 @@ Open-source Chrome (MV3) extension that scans job application forms, auto-fills 
 ## Developer setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Mio-Atse/sir-fills-a-lot
 cd sir-fills-a-lot
 npm install
 npm run build   # outputs dist/
