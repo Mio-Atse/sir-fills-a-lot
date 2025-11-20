@@ -131,6 +131,9 @@ export async function callLLM(opts: LLMRequestOptions): Promise<string> {
     if (config.mode === 'local') {
         return callOllama(config, model, opts.messages, opts);
     } else {
+        if (!config.consentToSendData) {
+            throw new Error("Cloud LLM calls are blocked until you enable data-sharing consent in the options page.");
+        }
         if (!config.provider) throw new Error("No LLM provider selected");
 
         switch (config.provider) {

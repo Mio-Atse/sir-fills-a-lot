@@ -1,5 +1,6 @@
 // File: src/storage/storage.ts
 import { StorageSchema, UserProfile, UserPreferences, LLMConfig, JobDescription, ApplicationSession, DEFAULT_LLM_CONFIG, DEFAULT_PREFERENCES } from './schema';
+import { encryptString, decryptString, isEncryptedString } from '../utils/encryption';
 
 export class StorageService {
     private static async get<K extends keyof StorageSchema>(key: K): Promise<StorageSchema[K] | undefined> {
@@ -11,8 +12,76 @@ export class StorageService {
         await chrome.storage.local.set({ [key]: value });
     }
 
+    private static async decryptProfile(profile: UserProfile): Promise<UserProfile> {
+        const clone = { ...profile };
+        if (clone.resume_data && isEncryptedString(clone.resume_data)) {
+            clone.resume_data = await decryptString(clone.resume_data);
+        }
+        if (clone.raw_text && isEncryptedString(clone.raw_text)) {
+            clone.raw_text = await decryptString(clone.raw_text);
+        }
+        return clone;
+    }
+
+    private static async encryptProfile(profile: UserProfile): Promise<UserProfile> {
+        const clone = { ...profile };
+        if (clone.resume_data && !isEncryptedString(clone.resume_data)) {
+            clone.resume_data = await encryptString(clone.resume_data);
+        }
+        if (clone.raw_text && !isEncryptedString(clone.raw_text)) {
+            clone.raw_text = await encryptString(clone.raw_text);
+        }
+        return clone;
+    }
+
+    private static async decryptProfiles(profiles: UserProfile[]): Promise<UserProfile[]> {
+        return Promise.all(profiles.map(p => this.decryptProfile(p)));
+    }
+
+    private static async encryptProfiles(profiles: UserProfile[]): Promise<UserProfile[]> {
+        return Promise.all(profiles.map(p => this.encryptProfile(p)));
+    }
+
+    private static async decryptLLMConfig(config: LLMConfig): Promise<LLMConfig> {
+        const clone: LLMConfig = {
+            ...DEFAULT_LLM_CONFIG,
+            ...config,
+            apiKeys: { ...DEFAULT_LLM_CONFIG.apiKeys, ...config.apiKeys },
+        };
+
+        const decryptedKeys: Record<string, string | undefined> = {};
+        for (const [provider, value] of Object.entries(clone.apiKeys)) {
+            if (typeof value === 'string' && isEncryptedString(value)) {
+                decryptedKeys[provider] = await decryptString(value);
+            } else {
+                decryptedKeys[provider] = value;
+            }
+        }
+
+        clone.apiKeys = decryptedKeys;
+        return clone;
+    }
+
+    private static async encryptLLMConfig(config: LLMConfig): Promise<LLMConfig> {
+        const clone: LLMConfig = {
+            ...DEFAULT_LLM_CONFIG,
+            ...config,
+            apiKeys: { ...DEFAULT_LLM_CONFIG.apiKeys, ...config.apiKeys },
+        };
+
+        const encryptedKeys: Record<string, string | undefined> = {};
+        for (const [provider, value] of Object.entries(clone.apiKeys)) {
+            if (typeof value === 'string' && value) {
+                encryptedKeys[provider] = await encryptString(value);
+            }
+        }
+        clone.apiKeys = encryptedKeys;
+        return clone;
+    }
+
     static async getProfiles(): Promise<UserProfile[]> {
-        return (await this.get('profiles')) || [];
+        const stored = (await this.get('profiles')) || [];
+        return this.decryptProfiles(stored);
     }
 
     static async saveProfile(profile: UserProfile): Promise<void> {
@@ -23,7 +92,8 @@ export class StorageService {
         } else {
             profiles.push(profile);
         }
-        await this.set('profiles', profiles);
+        const encrypted = await this.encryptProfiles(profiles);
+        await this.set('profiles', encrypted as StorageSchema['profiles']);
     }
 
     static async setDefaultProfileId(id: string): Promise<void> {
@@ -43,11 +113,13 @@ export class StorageService {
     }
 
     static async getLLMConfig(): Promise<LLMConfig> {
-        return (await this.get('llmConfig')) || DEFAULT_LLM_CONFIG;
+        const stored = (await this.get('llmConfig')) || DEFAULT_LLM_CONFIG;
+        return this.decryptLLMConfig(stored);
     }
 
     static async saveLLMConfig(config: LLMConfig): Promise<void> {
-        await this.set('llmConfig', config);
+        const encrypted = await this.encryptLLMConfig(config);
+        await this.set('llmConfig', encrypted as StorageSchema['llmConfig']);
     }
 
     static async getJobDescriptions(): Promise<JobDescription[]> {

@@ -53,6 +53,7 @@ export type LLMProviderName = "ollama" | "openai" | "groq" | "gemini";
 export interface LLMConfig {
     mode: "local" | "api";
     provider: LLMProviderName | null;
+    consentToSendData: boolean; // Explicit user consent for sending profile/job data to cloud providers
     apiKeys: {
         openai?: string;
         groq?: string;
@@ -98,6 +99,7 @@ export interface StorageSchema {
 export const DEFAULT_LLM_CONFIG: LLMConfig = {
     mode: "local",
     provider: null,
+    consentToSendData: false,
     apiKeys: {},
     models: {
         bigModel: "llama3:70b",

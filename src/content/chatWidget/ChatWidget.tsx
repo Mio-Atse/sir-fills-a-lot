@@ -148,7 +148,6 @@ const ChatWidget = () => {
                 case 'long_text':
                     // Use LLM to generate text
                     try {
-                        console.log("Calling LLM for field:", f.label);
                         val = await callLLM({
                             variant: 'small',
                             messages: [
@@ -156,7 +155,6 @@ const ChatWidget = () => {
                                 { role: 'user', content: `Field Label: ${f.label}\n\nUser Profile: ${JSON.stringify(profile)}\n\nUser Preferences: ${JSON.stringify(prefs)}` }
                             ]
                         });
-                        console.log("LLM Response:", val);
                         if (typeof val === 'string') val = val.trim().replace(/^["']|["']$/g, ''); // Clean quotes
                     } catch (error) {
                         console.error("LLM generation failed for field", f.label, error);
@@ -171,7 +169,6 @@ const ChatWidget = () => {
 
                 if (isText) {
                     try {
-                        console.log("Attempting LLM fill for unknown field:", f.label);
                         val = await callLLM({
                             variant: 'small',
                             messages: [
@@ -179,7 +176,6 @@ const ChatWidget = () => {
                                 { role: 'user', content: `Field Label: ${f.label}\n\nUser Profile: ${JSON.stringify(profile)}\n\nUser Preferences: ${JSON.stringify(prefs)}` }
                             ]
                         });
-                        console.log("LLM Response (Unknown):", val);
                         if (typeof val === 'string') val = val.trim().replace(/^["']|["']$/g, '');
                     } catch (error) {
                         // Ignore error, just leave empty

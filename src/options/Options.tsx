@@ -187,6 +187,10 @@ const Options = () => {
     };
 
     const saveLLM = async () => {
+        if (llmConfig.mode === 'api' && !llmConfig.consentToSendData) {
+            setStatus('Please confirm data sharing consent before using cloud providers.');
+            return;
+        }
         await StorageService.saveLLMConfig(llmConfig);
         setStatus('LLM Config saved.');
     };
@@ -308,6 +312,17 @@ const Options = () => {
                                             />
                                         </div>
                                     )}
+                                    <div className="form-group">
+                                        <label>Data Sharing Consent</label>
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={llmConfig.consentToSendData}
+                                                onChange={e => setLlmConfig({ ...llmConfig, consentToSendData: e.target.checked })}
+                                            />
+                                            I understand my CV/profile and job descriptions will be sent to the selected cloud provider.
+                                        </label>
+                                    </div>
                                 </div>
                             )}
 
