@@ -1,4 +1,4 @@
-# Sir Fills A Lot
+![Sir Fills A Lot banner](_images/banner.png)
 
 Open-source Chrome (MV3) extension that scans job application forms, auto-fills them from your CV, and can generate cover letters. Works offline with local LLMs (Ollama) or with your own API keys for OpenAI/Groq/Gemini. All data stays in `chrome.storage.local` and keys/CV text are encrypted at rest inside the extension.
 
@@ -10,7 +10,7 @@ Open-source Chrome (MV3) extension that scans job application forms, auto-fills 
 - Cover-letter generation from your profile + captured job description.
 - Local mode (Ollama) or API mode with preset model dropdowns and explicit consent for cloud calls.
 
-## How to install (non-developers)
+## How to install
 
 1. Download the latest release zip (containing the `dist/` folder) from GitHub Releases.
 2. Unzip it locally.
@@ -57,6 +57,8 @@ Load the generated `dist/` into Chrome via Load unpacked (steps above). For hot 
 - Bring your own API keys; none are bundled.
 
 ## Contributing
+
+![Sir Fills A Lot UI preview](_images/design-1to1.png)
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - CI: run `npm run build` before pushing. A simple GitHub Actions workflow can run `npm ci` and `npm run build` on pull requests (see below).
