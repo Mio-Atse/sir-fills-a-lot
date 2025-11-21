@@ -4,8 +4,9 @@ import { scanForm, fillField, FormFieldDescriptor, findNextButton } from '../for
 import { StorageService } from '../../storage/storage';
 import { callLLM } from '../../llm/providers';
 import { getCoverLetterPrompt } from '../../llm/prompts/coverLetterPrompt';
-import { X, Play, FileText, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Play, FileText, Send, Sparkles, AlertCircle, Download } from 'lucide-react';
 import { getExtensionAssetUrl } from '../../utils/assetPaths';
+import { CoverLetterPdfPayload, createCoverLetterPdf, triggerPdfDownload } from '../../utils/pdfGenerator';
 import './ChatWidget.css';
 
 const mascotIdleIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-mascot-idle-icon.png');
@@ -34,6 +35,8 @@ const ChatWidget = () => {
     const [swingComplete, setSwingComplete] = useState(false);
     const [speechText, setSpeechText] = useState('');
     const [showBubble, setShowBubble] = useState(false);
+    const [coverLetterText, setCoverLetterText] = useState('');
+    const [coverLetterPdf, setCoverLetterPdf] = useState<CoverLetterPdfPayload | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +47,14 @@ const ChatWidget = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+        return () => {
+            if (coverLetterPdf?.url) {
+                URL.revokeObjectURL(coverLetterPdf.url);
+            }
+        };
+    }, [coverLetterPdf]);
 
     useEffect(() => {
         setIsVisible(visibilityState.__sirfillsLastVisibility ?? false);
@@ -109,6 +120,36 @@ const ChatWidget = () => {
             u8arr[n] = bstr.charCodeAt(n);
         }
         return new File([u8arr], filename, { type: mime });
+    };
+
+    const buildAndDownloadCoverLetterPdf = (letter: string, profile: any, job: any) => {
+        try {
+            const payload = createCoverLetterPdf(letter, {
+                candidateName: profile?.full_name || profile?.cv_name,
+                jobTitle: job?.title,
+                sourceUrl: job?.sourceUrl
+            });
+            setCoverLetterPdf(prev => {
+                if (prev?.url) URL.revokeObjectURL(prev.url);
+                return payload;
+            });
+            triggerPdfDownload(payload);
+        } catch (error) {
+            console.error('PDF generation failed', error);
+            setStatus('Cover letter generated, but PDF download failed.');
+        }
+    };
+
+    const handleManualPdfDownload = () => {
+        if (coverLetterPdf) {
+            triggerPdfDownload(coverLetterPdf);
+            return;
+        }
+        if (coverLetterText) {
+            setStatus('PDF not available. Please regenerate the cover letter to refresh the download.');
+            return;
+        }
+        setStatus('Generate a cover letter to download it as PDF.');
     };
 
     const processCurrentPage = async (profile: any, prefs: any): Promise<{ filled: number, missing: FormFieldDescriptor[] }> => {
@@ -295,6 +336,12 @@ const ChatWidget = () => {
             return;
         }
 
+        setCoverLetterText('');
+        setCoverLetterPdf(prev => {
+            if (prev?.url) URL.revokeObjectURL(prev.url);
+            return null;
+        });
+
         try {
             const prompt = getCoverLetterPrompt(profile, prefs, job);
             const letter = await callLLM({
@@ -303,15 +350,24 @@ const ChatWidget = () => {
                 temperature: 0.7
             });
 
+            if (typeof letter !== 'string' || !letter.trim()) {
+                setStatus('Cover letter generation returned an empty response.');
+                return;
+            }
+
+            const cleanLetter = letter.trim();
+            setCoverLetterText(cleanLetter);
+            buildAndDownloadCoverLetterPdf(cleanLetter, profile, job);
+
             // Find cover letter field
             const clField = fields.find(f => f.predictedType === 'cover_letter');
             if (clField) {
-                fillField(clField, letter);
-                setStatus('Cover letter generated and filled!');
+                fillField(clField, cleanLetter);
+                setStatus('Cover letter generated, filled, and downloaded as PDF.');
             } else {
                 // Copy to clipboard or show in chat
-                setMessages(prev => [...prev, { role: 'assistant', content: `I couldn't find a cover letter field, but here is the text:\n\n${letter}` }]);
-                setStatus('Cover letter generated (see chat).');
+                setMessages(prev => [...prev, { role: 'assistant', content: `I couldn't find a cover letter field, but here is the text:\n\n${cleanLetter}` }]);
+                setStatus('Cover letter generated and downloaded as PDF.');
             }
         } catch (err: any) {
             setStatus(`Error: ${err.message}`);
@@ -425,6 +481,15 @@ const ChatWidget = () => {
 
                                 <button className="sf-btn-secondary" onClick={generateCoverLetter}>
                                     <FileText size={16} /> Generate Cover Letter
+                                </button>
+
+                                <button
+                                    className="sf-btn-secondary"
+                                    onClick={handleManualPdfDownload}
+                                    disabled={!coverLetterPdf}
+                                    title={coverLetterPdf ? 'Download generated cover letter as PDF' : 'Generate a cover letter first'}
+                                >
+                                    <Download size={16} /> Download PDF
                                 </button>
                             </div>
 

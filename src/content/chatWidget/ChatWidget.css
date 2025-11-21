@@ -339,6 +339,14 @@
     border-color: var(--sf-text-muted);
 }
 
+.sf-btn-primary:disabled,
+.sf-btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
 .sf-fields-list h4 {
     margin: 0 0 12px 0;
     font-size: 13px;
