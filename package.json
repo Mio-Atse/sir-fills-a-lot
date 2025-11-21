@@ -1,6 +1,6 @@
 {
-  "name": "job-helper-extension",
-  "version": "1.0.0",
+  "name": "sir-fills-a-lot",
+  "version": "0.5.0",
   "description": "Open-source Chrome extension for semi-automatic job application filling.",
   "scripts": {
     "dev": "vite",
