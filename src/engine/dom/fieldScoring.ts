@@ -141,6 +141,8 @@ export function scoreCandidate(candidate: FormFieldCandidate, type: CanonicalFie
     // e.g. if looking for email but type is 'tel', punish heavily
     if (type === CanonicalFieldType.Email && candidate.inputType === 'tel') score -= 100;
     if (type === CanonicalFieldType.Phone && candidate.inputType === 'email') score -= 100;
+    if (type === CanonicalFieldType.City && aggregate.includes('country')) score -= 80;
+    if (type === CanonicalFieldType.Country && aggregate.includes('city')) score -= 80;
 
     return score;
 }

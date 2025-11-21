@@ -287,7 +287,11 @@ const SUITES: TestSuite[] = [
         name: 'Suite E: Shadow DOM',
         getRoot: () => {
             const host = document.getElementById('shadow-form-host') as HTMLElement | null;
+            if (host && !host.shadowRoot) {
+                initShadowForm();
+            }
             const shadow = host?.shadowRoot;
+            // scanForCandidates accepts ShadowRoot, but our type signature is HTMLElement | Document | null, so cast.
             return (shadow as unknown as Document) || null;
         },
         specs: [
@@ -496,7 +500,7 @@ async function runSuite(suite: TestSuite): Promise<FieldResult[]> {
                 message = `Value mismatch. Expected "${spec.value}", got "${actualValue}" (matched element value "${matchedValue}")`;
             } else {
                 status = 'pass';
-                message = 'Matched and filled successfully';
+                message = `Matched ${describeElement(matched.element)}; wrote "${matchedValue}"`;
             }
         }
 
@@ -535,30 +539,29 @@ function resetForms(root: HTMLElement | Document) {
 
 function readValue(element: MaybeEl): any {
     if (!element) return null;
-    if (element instanceof HTMLInputElement) {
-        if (element.type === 'checkbox' || element.type === 'radio') {
-            return element.checked;
-        }
-        if (element.type === 'file') {
-            return element.files && element.files.length > 0 ? element.files[0].name : '';
-        }
-        return element.value;
+    const tag = element.tagName?.toLowerCase?.() || '';
+    if (tag === 'input') {
+        const input = element as HTMLInputElement;
+        if (input.type === 'checkbox' || input.type === 'radio') return input.checked;
+        if (input.type === 'file') return input.files && input.files.length > 0 ? input.files[0].name : '';
+        return input.value;
     }
-    if (element instanceof HTMLSelectElement) {
-        const selected = element.options[element.selectedIndex];
+    if (tag === 'select') {
+        const select = element as HTMLSelectElement;
+        const selected = select.options[select.selectedIndex];
         return selected ? selected.text || selected.value : '';
     }
-    if (element instanceof HTMLTextAreaElement) {
-        return element.value;
+    if (tag === 'textarea') {
+        return (element as HTMLTextAreaElement).value;
     }
-    const role = element.getAttribute('role');
-    if (role === 'listbox') {
+    const roleAttr = element.getAttribute('role');
+    if (roleAttr === 'listbox') {
         const selected = element.querySelector('[role="option"][aria-selected="true"], [role="option"].selected') as HTMLElement | null;
         if (selected) return (selected.getAttribute('data-value') || selected.textContent || '').trim();
         const dataValue = element.getAttribute('data-selected-value');
         if (dataValue) return dataValue;
     }
-    if (role === 'radio') {
+    if (roleAttr === 'radio') {
         const checked = element.getAttribute('aria-checked');
         if (checked != null) return checked === 'true';
     }
@@ -640,6 +643,7 @@ function renderResults(results: FieldResult[]) {
             <div>
                 <div><strong>${res.label}</strong> <span class="meta">(${res.suiteId})</span></div>
                 <div class="meta">${res.message}</div>
+                <div class="meta">Expected: ${String(res.expectedValue)} | Actual: ${String(res.actualValue)}</div>
             </div>
             <span class="status ${res.status}">${res.status.toUpperCase()}</span>
         `;
