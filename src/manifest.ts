@@ -26,6 +26,12 @@ export default defineManifest({
         {
             matches: ['<all_urls>'],
             js: ['src/content/index.tsx'],
+            exclude_matches: [
+                'http://localhost:5173/test/*',
+                'https://localhost:5173/test/*',
+                'http://127.0.0.1:5173/test/*',
+                'https://127.0.0.1:5173/test/*',
+            ],
             all_frames: true,
         },
     ],

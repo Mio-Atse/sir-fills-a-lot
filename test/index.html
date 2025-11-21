@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sir Fills-A-Lot | Form Autofill Testbed</title>
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f172a'/%3E%3Cpath d='M18 22h28v6H18z' fill='%237dd3fc'/%3E%3Cpath d='M18 32h20v6H18z' fill='%23a855f7'/%3E%3Cpath d='M18 42h12v6H18z' fill='%2338bdf8'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">DOM Filling Lab</p>
+            <h1>Hard-Mode Form Playground</h1>
+            <p class="lede">
+                Controlled HTML surfaces that mirror modern job application patterns: floating labels, aria-only
+                prompts, grouped radios, select menus, checkboxes, and iframes. The script will run the in-repo
+                matcher/filler, drop in sample data, then validate and highlight failures.
+            </p>
+        </div>
+        <div class="actions">
+            <button id="run-tests" class="primary">Run fill + assertions</button>
+            <button id="clear-highlights" class="ghost">Clear highlights</button>
+        </div>
+    </header>
+
+    <main class="layout">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Suite A</p>
+                    <h2>Classic recruiter form</h2>
+                    <p class="muted">Straightforward labels and autocomplete hints, plus a file upload and textarea.</p>
+                </div>
+                <span class="badge">Root: #classic-form</span>
+            </div>
+            <form id="classic-form" class="form-grid">
+                <div class="field">
+                    <label for="classic-first">Given Name</label>
+                    <input id="classic-first" name="given_name" type="text" autocomplete="given-name"
+                        placeholder="Ada" />
+                </div>
+                <div class="field">
+                    <label for="classic-last">Family Name</label>
+                    <input id="classic-last" name="family_name" type="text" autocomplete="family-name"
+                        placeholder="Lovelace" />
+                </div>
+                <div class="field">
+                    <label for="classic-email">Work Email</label>
+                    <input id="classic-email" name="email_address" type="email" placeholder="you@company.com" />
+                </div>
+                <div class="field">
+                    <label for="classic-phone">Mobile</label>
+                    <input id="classic-phone" name="mobile_number" type="tel" placeholder="+1 (555) 123-4567" />
+                </div>
+                <div class="field">
+                    <label for="classic-city">Current city</label>
+                    <select id="classic-city" name="city">
+                        <option value="">Choose city</option>
+                        <option value="Seattle">Seattle</option>
+                        <option value="New York">New York</option>
+                        <option value="San Francisco">San Francisco</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="classic-country">Country/Region</label>
+                    <select id="classic-country" name="country">
+                        <option value="">Choose country</option>
+                        <option value="United States">United States</option>
+                        <option value="Canada">Canada</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                    </select>
+                </div>
+                <div class="field wide">
+                    <label for="classic-cover">Cover letter / motivation</label>
+                    <textarea id="classic-cover" name="cover_letter" rows="4"
+                        placeholder="Write a short note"></textarea>
+                </div>
+                <div class="field wide">
+                    <label for="classic-resume">Upload your CV</label>
+                    <input id="classic-resume" name="resume_file" type="file" />
+                    <p class="hint">Expected to fail until file filling is wired in the engine.</p>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Suite B</p>
+                    <h2>Modern &amp; tricky layouts</h2>
+                    <p class="muted">Floating labels, aria-only prompts, grouped radios, and a contenteditable summary.</p>
+                </div>
+                <span class="badge">Root: #modern-form</span>
+            </div>
+            <form id="modern-form" class="form-grid">
+                <div class="field floating wide">
+                    <label for="modern-full-name">Full legal name</label>
+                    <input id="modern-full-name" name="applicant[full_name]" type="text"
+                        placeholder="Full name as on passport" />
+                </div>
+                <div class="field floating">
+                    <label class="sr-only" for="modern-email">Email</label>
+                    <input id="modern-email" aria-label="Email address" name="contact[email]" type="email"
+                        placeholder="name@domain.com" />
+                </div>
+                <div class="field floating">
+                    <label class="sr-only" for="modern-phone">Phone</label>
+                    <input id="modern-phone" aria-label="Mobile number" name="phone_mobile" type="tel"
+                        placeholder="+44 7700 900123" />
+                </div>
+                <div class="field floating wide">
+                    <label for="modern-linkedin">LinkedIn profile</label>
+                    <input id="modern-linkedin" name="social-linkedin" type="url"
+                        placeholder="https://linkedin.com/in/you" />
+                </div>
+                <div class="field floating wide">
+                    <div class="field-header" id="portfolio-label">
+                        <span>Personal site / portfolio</span>
+                        <small>Accepts any URL</small>
+                    </div>
+                    <input id="modern-portfolio" name="portfolio_site" type="url" aria-labelledby="portfolio-label"
+                        placeholder="https://yoursite.dev" />
+                </div>
+                <div class="field">
+                    <label for="modern-city">City (select menu)</label>
+                    <select id="modern-city" name="city">
+                        <option value="">Select</option>
+                        <option value="Berlin">Berlin</option>
+                        <option value="Lisbon">Lisbon</option>
+                        <option value="Seattle">Seattle</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="modern-country">Country</label>
+                    <select id="modern-country" name="country">
+                        <option value="">Select</option>
+                        <option value="Germany">Germany</option>
+                        <option value="Portugal">Portugal</option>
+                        <option value="United States">United States</option>
+                    </select>
+                </div>
+                <fieldset class="field wide">
+                    <legend>Remote preference (checkbox)</legend>
+                    <label class="option">
+                        <input id="modern-remote" name="remote_only" type="checkbox" value="yes" />
+                        Remote only
+                    </label>
+                </fieldset>
+                <fieldset class="field wide">
+                    <legend>Relocation willingness (radio)</legend>
+                    <label class="option">
+                        <input id="relocate-yes" name="relocation" type="radio" value="yes" />
+                        Open to relocating
+                    </label>
+                    <label class="option">
+                        <input id="relocate-no" name="relocation" type="radio" value="no" />
+                        Prefer not to relocate
+                    </label>
+                </fieldset>
+                <div class="field wide">
+                    <label for="modern-cover">Tell us about yourself</label>
+                    <textarea id="modern-cover" name="cover_letter" rows="3"
+                        placeholder="Brief pitch or mini cover letter"></textarea>
+                </div>
+                <div class="field wide faux-field" id="modern-summary" role="textbox" contenteditable="true"
+                    aria-label="Short summary">
+                    Paste or type a brief summary here...
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Suite D</p>
+                    <h2>Accessibility edge cases</h2>
+                    <p class="muted">Placeholder-only labels, multi-id aria-labelledby, optgroups, and value/text mismatches.</p>
+                </div>
+                <span class="badge">Root: #accessibility-form</span>
+            </div>
+            <form id="accessibility-form" class="form-grid">
+                <div class="field">
+                    <div class="sr-only" id="acc-first-label">Applicant given name</div>
+                    <input id="acc-first" aria-labelledby="acc-first-label" name="first" type="text" placeholder="Given" />
+                </div>
+                <div class="field">
+                    <input id="acc-last" name="surname" type="text" placeholder="Surname (family name)" />
+                </div>
+                <div class="field">
+                    <label class="sr-only" for="acc-email">Email</label>
+                    <input id="acc-email" aria-label="Work email address" type="text" name="contact_email"
+                        placeholder="user@company.com" />
+                </div>
+                <div class="field">
+                    <input id="acc-phone" type="tel" name="tel_number" placeholder="+33 6 12 34 56 78" />
+                </div>
+                <div class="field">
+                    <label for="acc-city">City (value/text differ)</label>
+                    <select id="acc-city" name="city_code">
+                        <option value="">Choose</option>
+                        <option value="sea">Seattle</option>
+                        <option value="nyc">New York</option>
+                        <option value="lis">Lisbon</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="acc-country">Country (lowercase values)</label>
+                    <select id="acc-country" name="country">
+                        <option value="">Select</option>
+                        <optgroup label="Americas">
+                            <option value="united states">United States</option>
+                            <option value="canada">Canada</option>
+                        </optgroup>
+                        <optgroup label="Europe">
+                            <option value="germany">Germany</option>
+                            <option value="portugal">Portugal</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="field wide">
+                    <label id="acc-portfolio-label" for="acc-portfolio">Portfolio (aria-labelledby + hint)</label>
+                    <small id="acc-portfolio-hint" class="muted">Provide any public URL</small>
+                    <input id="acc-portfolio" aria-labelledby="acc-portfolio-label acc-portfolio-hint" type="url"
+                        name="work_site" placeholder="https://..." />
+                </div>
+                <div class="field wide">
+                    <label for="acc-cover">Why are you a fit?</label>
+                    <textarea id="acc-cover" name="motivation" rows="3"
+                        placeholder="Explain why you want this role"></textarea>
+                </div>
+                <div class="field wide">
+                    <label for="acc-resume">Attach CV</label>
+                    <input id="acc-resume" name="cv_file" type="file" />
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Suite E</p>
+                    <h2>Shadow DOM + custom roles</h2>
+                    <p class="muted">Shadow-root fields, plus div-based combobox/listbox/radio patterns.</p>
+                </div>
+                <span class="badge">Roots: #shadow-form-host.shadowRoot &amp; #role-form</span>
+            </div>
+            <div class="field wide">
+                <label>Shadow form host</label>
+                <div id="shadow-form-host" class="faux-field">Shadow form injected at runtime.</div>
+            </div>
+            <div class="field wide">
+                <label>Custom role-driven controls</label>
+                <div id="role-form" class="faux-field role-form">
+                    <div role="textbox" id="role-fullname" aria-label="Full name input" contenteditable="true"></div>
+                    <div role="textbox" id="role-email" aria-label="Email field" contenteditable="true"></div>
+                    <div role="radio" id="role-remote-yes" aria-label="Remote yes"></div>
+                    <div role="radio" id="role-remote-no" aria-label="Remote no"></div>
+                    <div role="listbox" id="role-country" aria-label="Country listbox">
+                        <div role="option" data-value="United States">United States</div>
+                        <div role="option" data-value="Canada">Canada</div>
+                        <div role="option" data-value="Germany">Germany</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Suite C</p>
+                    <h2>Iframe edge case</h2>
+                    <p class="muted">Same-origin iframe with aria-labelledby driven labels.</p>
+                </div>
+                <span class="badge">Root: iframe#edge-iframe</span>
+            </div>
+            <div class="iframe-shell">
+                <iframe id="edge-iframe" title="embedded form"
+                    srcdoc="
+                    <html>
+                        <head>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 16px; background: #0f172a; color: #e2e8f0; }
+                                label, legend { display: block; margin-bottom: 4px; font-weight: 600; }
+                                .field { margin-bottom: 12px; }
+                                input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; }
+                            </style>
+                        </head>
+                        <body>
+                            <form id='iframe-form'>
+                                <div class='field'>
+                                    <span id='iframe-name-label'>Full name (aria-labelledby)</span>
+                                    <input id='iframe-full-name' aria-labelledby='iframe-name-label' name='full_name' type='text' placeholder='Your name' />
+                                </div>
+                                <div class='field'>
+                                    <span id='iframe-email-label'>Email contact</span>
+                                    <input id='iframe-email' aria-labelledby='iframe-email-label' name='email' type='email' placeholder='user@example.com' />
+                                </div>
+                                <div class='field'>
+                                    <span id='iframe-phone-label'>Phone contact</span>
+                                    <input id='iframe-phone' aria-labelledby='iframe-phone-label' name='phone' type='tel' placeholder='+1 555 123 4567' />
+                                </div>
+                                <div class='field'>
+                                    <label for='iframe-country'>Country choice</label>
+                                    <select id='iframe-country' name='country'>
+                                        <option value=''>Choose</option>
+                                        <option value='United States'>United States</option>
+                                        <option value='Canada'>Canada</option>
+                                        <option value='Brazil'>Brazil</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </body>
+                    </html>
+                    ">
+                </iframe>
+            </div>
+        </section>
+
+        <section class="panel results-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Live assertions</p>
+                    <h2>Engine pass/fail report</h2>
+                    <p class="muted">Matches must hit the expected element and end with the correct value.</p>
+                </div>
+            </div>
+            <div id="results-summary" class="results-summary"></div>
+            <div id="results-list" class="results-list"></div>
+        </section>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+</body>
+
+</html>
