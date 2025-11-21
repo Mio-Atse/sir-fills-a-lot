@@ -18,21 +18,33 @@ const SHOW_WIDGET_MSG = 'SIRFILLS_SHOW_WIDGET';
 const HIDE_WIDGET_MSG = 'SIRFILLS_HIDE_WIDGET';
 const DETECTION_DEBOUNCE_MS = 450;
 const IS_DEV = import.meta.env.DEV;
+const isLocalTestHarness = () => {
+    const host = window.location.hostname;
+    const port = window.location.port;
+    const path = window.location.pathname;
+    return (
+        (host === 'localhost' || host === '127.0.0.1') &&
+        port === '5173' &&
+        path.startsWith('/test/')
+    );
+};
 
-// Create root element for widget
-const root = document.createElement('div');
-root.id = 'job-helper-root';
-document.body.appendChild(root);
+if (!isLocalTestHarness()) {
+    // Create root element for widget
+    const root = document.createElement('div');
+    root.id = 'job-helper-root';
+    document.body.appendChild(root);
 
-ReactDOM.createRoot(root).render(
-    <React.StrictMode>
-        <ChatWidget />
-    </React.StrictMode>
-);
+    ReactDOM.createRoot(root).render(
+        <React.StrictMode>
+            <ChatWidget />
+        </React.StrictMode>
+    );
 
-setupJobPageDetection(root);
+    setupJobPageDetection(root);
 
-SessionManager.updateStep(window.location.hostname, window.location.href).catch(console.error);
+    SessionManager.updateStep(window.location.hostname, window.location.href).catch(console.error);
+}
 
 function setupJobPageDetection(widgetRoot: HTMLElement) {
     let lastVisibility = visibilityWindow.__sirfillsLastVisibility ?? false;

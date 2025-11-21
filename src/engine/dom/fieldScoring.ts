@@ -37,12 +37,12 @@ const SYNONYMS: Partial<Record<CanonicalFieldType, {
         labels: ['portfolio', 'website', 'personal site', 'link to portfolio']
     },
     [CanonicalFieldType.Resume]: {
-        attributes: ['resume', 'cv', 'curriculum_vitae', 'file', 'upload'],
-        labels: ['resume', 'cv', 'curriculum vitae', 'upload resume']
+        attributes: ['resume', 'resume_file', 'cv', 'cv_file', 'curriculum_vitae', 'file', 'upload', 'upload_resume', 'upload_cv'],
+        labels: ['resume', 'cv', 'curriculum vitae', 'upload resume', 'upload your cv', 'attach cv']
     },
     [CanonicalFieldType.CoverLetter]: {
-        attributes: ['coverletter', 'cover_letter', 'letter'],
-        labels: ['cover letter', 'add a cover letter']
+        attributes: ['coverletter', 'cover_letter', 'letter', 'motivation', 'why_this_role', 'why_you', 'whyfit', 'whyfitthis'],
+        labels: ['cover letter', 'add a cover letter', 'motivation', 'why are you a fit', 'why do you want', 'why this role', 'why you', 'why should we']
     },
     [CanonicalFieldType.City]: {
         attributes: ['city', 'town'],
@@ -52,7 +52,18 @@ const SYNONYMS: Partial<Record<CanonicalFieldType, {
         attributes: ['country', 'nation'],
         labels: ['country', 'nation']
     },
-    // Add more as needed
+    [CanonicalFieldType.RemotePreference]: {
+        attributes: ['remote', 'remote_only', 'remoteonly', 'is_remote', 'fully_remote'],
+        labels: ['remote', 'remote only', 'fully remote', 'work remotely', 'work from home']
+    },
+    [CanonicalFieldType.RelocationWillingness]: {
+        attributes: ['relocation', 'relocate', 'willing_to_relocate', 'relocation_ok', 'move'],
+        labels: ['relocation', 'relocate', 'open to relocating', 'willing to relocate', 'prefer not to relocate', 'no relocation']
+    },
+    [CanonicalFieldType.FreeText]: {
+        attributes: ['summary', 'about', 'overview', 'bio'],
+        labels: ['summary', 'about', 'short summary', 'bio', 'tell us about', 'describe']
+    },
 };
 
 function normalize(str: string): string {
@@ -65,6 +76,12 @@ function containsKeyword(text: string, keywords: string[]): boolean {
     return keywords.some(kw => normalizedText.includes(kw));
 }
 
+function looksLikePhone(text: string): boolean {
+    if (!text) return false;
+    const normalized = text.replace(/[\s()+\-\.]/g, '');
+    return /\d{6,}/.test(normalized);
+}
+
 export function scoreCandidate(candidate: FormFieldCandidate, type: CanonicalFieldType): number {
     let score = 0;
     const dict = SYNONYMS[type];
@@ -75,6 +92,10 @@ export function scoreCandidate(candidate: FormFieldCandidate, type: CanonicalFie
     const normLabel = (candidate.labelText || '').toLowerCase();
     const normPlaceholder = (candidate.placeholder || '').toLowerCase();
     const normAria = (candidate.ariaLabel || '').toLowerCase();
+    const normLabelledBy = (candidate.ariaLabelledByText || '').toLowerCase();
+    const normSurrounding = (candidate.surroundingText || '').toLowerCase();
+    const aggregate = `${normLabel} ${normPlaceholder} ${normAria} ${normLabelledBy} ${normSurrounding}`;
+    const role = (candidate.role || '').toLowerCase();
 
     // 1. Exact/Strong Attribute Match (Highest Weight)
     // Check name, id, autocomplete
@@ -89,22 +110,39 @@ export function scoreCandidate(candidate: FormFieldCandidate, type: CanonicalFie
     if (containsKeyword(normLabel, dict.labels)) {
         score += 40;
     }
-    if (containsKeyword(normPlaceholder, dict.labels)) {
+    if (containsKeyword(normPlaceholder || aggregate, dict.labels)) {
         score += 30;
     }
-    if (containsKeyword(normAria, dict.labels)) {
+    if (containsKeyword(normAria || aggregate, dict.labels)) {
+        score += 35;
+    }
+    if (containsKeyword(normLabelledBy || aggregate, dict.labels)) {
         score += 35;
     }
 
     // 3. Type-Specific Boosts
-    if (type === CanonicalFieldType.Email && candidate.inputType === 'email') score += 20;
-    if (type === CanonicalFieldType.Phone && candidate.inputType === 'tel') score += 20;
-    if (type === CanonicalFieldType.Resume && candidate.inputType === 'file') score += 20;
+    if (type === CanonicalFieldType.Email && candidate.inputType === 'email') score += 30;
+    if (type === CanonicalFieldType.Phone) {
+        if (candidate.inputType === 'tel') score += 60;
+        if (looksLikePhone(normPlaceholder) || looksLikePhone(normLabel)) score += 25;
+        if (normName.includes('tel')) score += 30;
+    }
+    if (type === CanonicalFieldType.Resume && candidate.inputType === 'file') score += 60;
+    if (type === CanonicalFieldType.CoverLetter && candidate.tagName === 'textarea') score += 20;
+    if (type === CanonicalFieldType.FreeText && (candidate.tagName === 'textarea' || role === 'textbox')) {
+        score += 25;
+    }
+    if ((type === CanonicalFieldType.RemotePreference || type === CanonicalFieldType.RelocationWillingness) &&
+        (candidate.inputType === 'checkbox' || candidate.inputType === 'radio' || role === 'radio')) {
+        score += 35;
+    }
 
     // 4. Negative Signals (Sanity Checks)
     // e.g. if looking for email but type is 'tel', punish heavily
     if (type === CanonicalFieldType.Email && candidate.inputType === 'tel') score -= 100;
     if (type === CanonicalFieldType.Phone && candidate.inputType === 'email') score -= 100;
+    if (type === CanonicalFieldType.City && aggregate.includes('country')) score -= 80;
+    if (type === CanonicalFieldType.Country && aggregate.includes('city')) score -= 80;
 
     return score;
 }

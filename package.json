@@ -4,6 +4,7 @@
   "description": "Open-source Chrome extension for semi-automatic job application filling.",
   "scripts": {
     "dev": "vite",
+    "dev:test": "vite --open /test/index.html",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

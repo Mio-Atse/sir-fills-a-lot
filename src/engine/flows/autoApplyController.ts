@@ -104,6 +104,7 @@ export class AutoApplyController {
             case CanonicalFieldType.RemotePreference: return d.willingToRemote;
             case CanonicalFieldType.DesiredSalary: return d.desiredSalary;
             case CanonicalFieldType.YearsExperience: return d.yearsExperience;
+            case CanonicalFieldType.FreeText: return this.profile.computed.fullTextSummary || '';
             // Files are harder, need object or specific handling
             default: return undefined;
         }
