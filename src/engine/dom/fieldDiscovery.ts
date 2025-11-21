@@ -2,6 +2,7 @@ export interface FormFieldCandidate {
     element: HTMLElement;
     tagName: string;
     inputType?: string;        // from type attribute
+    role?: string;             // aria role, e.g., textbox, listbox, radio
     nameAttr?: string;
     idAttr?: string;
     classes: string[];
@@ -10,6 +11,8 @@ export interface FormFieldCandidate {
     placeholder?: string;
     labelText?: string;          // nearest <label> text or ancestor label
     surroundingText?: string;    // nearby text nodes, fieldset legends, etc.
+    options?: { text: string; value: string }[]; // for selects or role=listbox
+    isContentEditable?: boolean;
     autocompleteAttr?: string;
     isVisible: boolean;          // computed via getBoundingClientRect + style checks
     isRequired: boolean;         // required attr or aria-required
@@ -25,10 +28,11 @@ function isVisible(element: HTMLElement): boolean {
 
 function getLabelText(element: HTMLElement): string {
     let labelText = '';
+    const root = element.getRootNode() as Document | ShadowRoot;
 
     // 1. Check for explicit <label for="id">
     if (element.id) {
-        const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
+        const label = root.querySelector?.(`label[for="${CSS.escape(element.id)}"]`);
         if (label) labelText += label.textContent || '';
     }
 
@@ -47,9 +51,16 @@ function getLabelText(element: HTMLElement): string {
     if (labelledBy) {
         const ids = labelledBy.split(/\s+/);
         ids.forEach(id => {
-            const labelEl = document.getElementById(id);
+            const labelEl = root.getElementById?.(id) as HTMLElement | null;
             if (labelEl) labelText += ' ' + (labelEl.textContent || '');
         });
+    }
+
+    // 4. Fieldset legends (for grouped controls)
+    const fieldset = element.closest('fieldset');
+    if (fieldset) {
+        const legend = fieldset.querySelector('legend');
+        if (legend) labelText += ' ' + (legend.textContent || '');
     }
 
     return labelText.trim();
@@ -68,8 +79,39 @@ function getSurroundingText(element: HTMLElement): string {
     return text.replace(/\s+/g, ' ').trim(); // Normalize whitespace
 }
 
-export function scanForCandidates(root: HTMLElement | Document = document): FormFieldCandidate[] {
+function collectAriaLabelledByText(element: HTMLElement): string | undefined {
+    const ids = element.getAttribute('aria-labelledby')?.split(/\s+/).filter(Boolean);
+    if (!ids || ids.length === 0) return undefined;
+    const parts: string[] = [];
+    const root = element.getRootNode() as Document | ShadowRoot;
+    ids.forEach(id => {
+        const el = (root as Document | ShadowRoot).getElementById?.(id) as HTMLElement | null;
+        if (el) parts.push(el.textContent || '');
+    });
+    const result = parts.join(' ').trim();
+    return result || undefined;
+}
+
+function buildOptions(element: HTMLElement): { text: string; value: string }[] | undefined {
+    if (element instanceof HTMLSelectElement) {
+        return Array.from(element.options).map(opt => ({
+            text: opt.text || opt.value,
+            value: opt.value || opt.text
+        }));
+    }
+    if (element.getAttribute('role') === 'listbox') {
+        const options = Array.from(element.querySelectorAll('[role="option"]')) as HTMLElement[];
+        return options.map((opt, idx) => ({
+            text: (opt.textContent || '').trim(),
+            value: opt.getAttribute('data-value') || opt.getAttribute('value') || `${idx}`
+        }));
+    }
+    return undefined;
+}
+
+export function scanForCandidates(root: HTMLElement | Document | ShadowRoot = document): FormFieldCandidate[] {
     const candidates: FormFieldCandidate[] = [];
+    const visitedRoots = new Set<Node>();
 
     // Selectors for potential form fields
     const selectors = [
@@ -81,58 +123,76 @@ export function scanForCandidates(root: HTMLElement | Document = document): Form
         '[role="combobox"]',
         '[role="checkbox"]',
         '[role="radio"]',
-        // Custom "div-based" inputs often used in modern frameworks
-        // We might need more specific heuristics for these later
+        '[contenteditable="true"]'
     ];
 
-    const elements = root.querySelectorAll(selectors.join(','));
+    const walk = (currentRoot: HTMLElement | Document | ShadowRoot) => {
+        if (visitedRoots.has(currentRoot)) return;
+        visitedRoots.add(currentRoot);
 
-    elements.forEach((el) => {
-        const element = el as HTMLElement;
+        const elements = (currentRoot as ParentNode).querySelectorAll?.(selectors.join(',')) || [];
 
-        // Basic visibility check
-        if (!isVisible(element)) return;
+        elements.forEach((el) => {
+            const element = el as HTMLElement;
 
-        // Honeypot check (simple)
-        if (element.getAttribute('aria-hidden') === 'true') return;
-        if (element.getAttribute('tabindex') === '-1') return; // Often hidden/non-interactive
+            // Basic visibility check
+            if (!isVisible(element)) return;
 
-        const candidate: FormFieldCandidate = {
-            element,
-            tagName: element.tagName.toLowerCase(),
-            inputType: element.getAttribute('type') || undefined,
-            nameAttr: element.getAttribute('name') || undefined,
-            idAttr: element.getAttribute('id') || undefined,
-            classes: Array.from(element.classList),
-            ariaLabel: element.getAttribute('aria-label') || undefined,
-            ariaLabelledByText: undefined, // Filled below
-            placeholder: element.getAttribute('placeholder') || undefined,
-            labelText: getLabelText(element),
-            surroundingText: getSurroundingText(element),
-            autocompleteAttr: element.getAttribute('autocomplete') || undefined,
-            isVisible: true,
-            isRequired: element.hasAttribute('required') || element.getAttribute('aria-required') === 'true'
-        };
+            // Honeypot check (simple)
+            if (element.getAttribute('aria-hidden') === 'true') return;
+            if (element.getAttribute('tabindex') === '-1') return; // Often hidden/non-interactive
 
-        // Resolve aria-labelledby if present (already done in getLabelText, but maybe we want it separate?)
-        // Actually getLabelText combines them. Let's keep it simple.
+            const role = element.getAttribute('role') || undefined;
+            const isContentEditable = element.isContentEditable;
 
-        candidates.push(candidate);
-    });
+            const candidate: FormFieldCandidate = {
+                element,
+                tagName: element.tagName.toLowerCase(),
+                inputType: element.getAttribute('type') || undefined,
+                role,
+                isContentEditable,
+                nameAttr: element.getAttribute('name') || undefined,
+                idAttr: element.getAttribute('id') || undefined,
+                classes: Array.from(element.classList),
+                ariaLabel: element.getAttribute('aria-label') || undefined,
+                ariaLabelledByText: collectAriaLabelledByText(element),
+                placeholder: element.getAttribute('placeholder') || undefined,
+                labelText: getLabelText(element),
+                surroundingText: getSurroundingText(element),
+                options: buildOptions(element),
+                autocompleteAttr: element.getAttribute('autocomplete') || undefined,
+                isVisible: true,
+                isRequired: element.hasAttribute('required') || element.getAttribute('aria-required') === 'true'
+            };
 
-    // Handle Iframes (Same Origin)
-    const iframes = root.querySelectorAll('iframe');
-    iframes.forEach(iframe => {
-        try {
-            const doc = iframe.contentDocument;
-            if (doc) {
-                const iframeCandidates = scanForCandidates(doc.body);
-                candidates.push(...iframeCandidates);
+            candidates.push(candidate);
+        });
+
+        // Handle Iframes (Same Origin)
+        const iframes = (currentRoot as ParentNode).querySelectorAll?.('iframe') || [];
+        iframes.forEach(iframe => {
+            const frame = iframe as HTMLIFrameElement;
+            try {
+                const doc = frame.contentDocument;
+                if (doc?.body) {
+                    walk(doc);
+                }
+            } catch {
+                // Cross-origin iframe, skip
             }
-        } catch (e) {
-            // Cross-origin iframe, skip
-        }
-    });
+        });
+
+        // Traverse Shadow DOMs
+        const allElements = (currentRoot as ParentNode).querySelectorAll?.('*') || [];
+        allElements.forEach(el => {
+            const shadow = (el as HTMLElement).shadowRoot;
+            if (shadow) {
+                walk(shadow);
+            }
+        });
+    };
+
+    walk(root);
 
     return candidates;
 }

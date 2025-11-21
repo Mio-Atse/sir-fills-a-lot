@@ -20,10 +20,13 @@ export function matchFields(candidates: FormFieldCandidate[]): FieldMatchResult 
         CanonicalFieldType.FullName,
         CanonicalFieldType.Resume,
         CanonicalFieldType.CoverLetter,
+        CanonicalFieldType.RemotePreference,
+        CanonicalFieldType.RelocationWillingness,
         CanonicalFieldType.LinkedinUrl,
         CanonicalFieldType.PortfolioUrl,
         CanonicalFieldType.City,
         CanonicalFieldType.Country,
+        CanonicalFieldType.FreeText,
         // ... others
     ];
 

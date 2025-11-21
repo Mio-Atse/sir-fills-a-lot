@@ -551,6 +551,17 @@ function readValue(element: MaybeEl): any {
     if (element instanceof HTMLTextAreaElement) {
         return element.value;
     }
+    const role = element.getAttribute('role');
+    if (role === 'listbox') {
+        const selected = element.querySelector('[role="option"][aria-selected="true"], [role="option"].selected') as HTMLElement | null;
+        if (selected) return (selected.getAttribute('data-value') || selected.textContent || '').trim();
+        const dataValue = element.getAttribute('data-selected-value');
+        if (dataValue) return dataValue;
+    }
+    if (role === 'radio') {
+        const checked = element.getAttribute('aria-checked');
+        if (checked != null) return checked === 'true';
+    }
     return element.textContent?.trim() ?? '';
 }
 
