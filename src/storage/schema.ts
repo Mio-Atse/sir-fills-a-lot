@@ -11,12 +11,34 @@ export interface UserProfile {
     linkedin?: string;
     github?: string;
     portfolio?: string;
+    website?: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    headline?: string;
+    publications?: {
+        title: string;
+        venue?: string;
+        year?: string;
+        link?: string;
+        description?: string;
+    }[];
+    awards?: string[];
+    volunteer?: {
+        organization: string;
+        role?: string;
+        start_date?: string;
+        end_date?: string;
+        description?: string;
+    }[];
 
     // Resume File (Base64)
     resume_data?: string;
     resume_name?: string;
 
     skills: string[];
+    languages?: string[];
+    certifications?: string[];
     experience: {
         company: string;
         title: string;
@@ -29,9 +51,17 @@ export interface UserProfile {
         degree: string;
         year: string;
     }[];
+    projects?: {
+        name: string;
+        description: string;
+        link?: string;
+        technologies?: string[];
+    }[];
     preferred_roles: string[];
     location: string;
     raw_text: string; // The full text content of the CV
+    extracted_fields?: Record<string, string>;
+    custom_sections?: Record<string, string[]>;
     last_updated: number;
 }
 

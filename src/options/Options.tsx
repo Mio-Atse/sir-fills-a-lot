@@ -162,6 +162,23 @@ const Options = () => {
         StorageService.saveProfile(updated).then(loadData);
     };
 
+    const deleteProfile = async (profileId: string) => {
+        const filtered = profiles.filter(p => p.id !== profileId);
+        // StorageService does not expose bulk save; remove then add remaining
+        // Simplest: delete then re-save remaining profiles
+        await StorageService.deleteProfile(profileId);
+        for (const profile of filtered) {
+            await StorageService.saveProfile(profile);
+        }
+        // If the deleted profile was default, reset to first available
+        if (defaultProfileId === profileId) {
+            const newDefault = filtered[0]?.id ?? null;
+            await StorageService.setDefaultProfileId(newDefault || '');
+            setDefaultProfileId(newDefault);
+        }
+        setProfiles(filtered);
+    };
+
     const handleSetDefaultProfile = async (profileId: string) => {
         await StorageService.setDefaultProfileId(profileId);
         setDefaultProfileId(profileId);
@@ -206,6 +223,12 @@ const Options = () => {
 
             const base64Data = await getBase64(file);
 
+            const locationString = [
+                parsed.location?.address,
+                parsed.location?.city,
+                parsed.location?.country
+            ].filter(Boolean).join(', ');
+
             const newProfile: UserProfile = {
                 id: crypto.randomUUID(),
                 cv_name: file.name,
@@ -213,14 +236,38 @@ const Options = () => {
                 last_updated: Date.now(),
                 resume_data: base64Data,
                 resume_name: file.name,
-                ...parsed
+                full_name: parsed.full_name || '',
+                headline: parsed.headline || '',
+                email: parsed.email || '',
+                phone: parsed.phone || '',
+                linkedin: parsed.links?.linkedin || '',
+                github: parsed.links?.github || '',
+                portfolio: parsed.links?.portfolio || '',
+                website: parsed.links?.website || parsed.links?.portfolio || '',
+                address: parsed.location?.address || '',
+                city: parsed.location?.city || '',
+                country: parsed.location?.country || '',
+                summary: parsed.summary || '',
+                skills: parsed.skills || [],
+                languages: parsed.languages || [],
+                certifications: parsed.certifications || [],
+                projects: parsed.projects || [],
+                publications: parsed.publications || [],
+                awards: parsed.awards || [],
+                volunteer: parsed.volunteer || [],
+                experience: parsed.experience || [],
+                education: parsed.education || [],
+                preferred_roles: parsed.preferred_roles || [],
+                location: locationString || parsed.location?.city || parsed.location?.country || parsed.location || '',
+                extracted_fields: parsed.extracted_fields || {},
+                custom_sections: parsed.custom_sections || {},
             };
 
             await StorageService.saveProfile(newProfile);
             await StorageService.setDefaultProfileId(newProfile.id);
             setProfiles(prev => [...prev, newProfile]);
             setDefaultProfileId(newProfile.id);
-            setStatus('CV processed and saved!');
+            setStatus('CV processed. Please review the extracted fields for accuracy before using autofill.');
         } catch (err: any) {
             console.error(err);
             setStatus(`Error: ${err.message}`);
@@ -553,26 +600,33 @@ const Options = () => {
                                 const rolesPreview = (p.preferred_roles || []).filter(role => !!role).slice(0, 3);
                                 return (
                                     <div key={p.id} className="profile-card card">
-                                        <div className="profile-header">
-                                            <div className="profile-title">
-                                                <div className="profile-icon">
-                                                    <img src={getProfileIcon(p, index)} alt={`${p.cv_name} icon`} />
+                                            <div className="profile-header">
+                                                <div className="profile-title">
+                                                    <div className="profile-icon">
+                                                        <img src={getProfileIcon(p, index)} alt={`${p.cv_name} icon`} />
+                                                    </div>
+                                                    <div className="profile-title-text">
+                                                        <strong>{p.cv_name}</strong>
+                                                        <span className="profile-updated">Updated {formatProfileDate(p.last_updated)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="profile-title-text">
-                                                    <strong>{p.cv_name}</strong>
-                                                    <span className="profile-updated">Updated {formatProfileDate(p.last_updated)}</span>
+                                                <div className="profile-actions">
+                                                    {defaultProfileId === p.id && <span className="badge-default">Default</span>}
+                                                    <button
+                                                        className={`btn-subtle${defaultProfileId === p.id ? ' active' : ''}`}
+                                                        onClick={() => handleSetDefaultProfile(p.id)}
+                                                    >
+                                                        {defaultProfileId === p.id ? 'Active' : 'Make Default'}
+                                                    </button>
+                                                    <button
+                                                        className="btn-subtle danger"
+                                                        onClick={() => deleteProfile(p.id)}
+                                                        title="Remove this profile"
+                                                    >
+                                                        Delete
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="profile-actions">
-                                                {defaultProfileId === p.id && <span className="badge-default">Default</span>}
-                                                <button
-                                                    className={`btn-subtle${defaultProfileId === p.id ? ' active' : ''}`}
-                                                    onClick={() => handleSetDefaultProfile(p.id)}
-                                                >
-                                                    {defaultProfileId === p.id ? 'Active' : 'Make Default'}
-                                                </button>
-                                            </div>
-                                        </div>
 
                                         <div className="profile-meta">
                                             <div className="profile-meta-item">
@@ -615,17 +669,53 @@ const Options = () => {
                                                             placeholder="jane@example.com"
                                                         />
                                                     </label>
-                                                    <label className="profile-field">
-                                                        <span className="profile-field-label">Phone</span>
-                                                        <input
-                                                            type="text"
-                                                            value={p.phone || ''}
-                                                            onChange={e => updateProfile(p, { phone: e.target.value })}
-                                                            placeholder="+1 555 123 4567"
-                                                        />
-                                                    </label>
-                                                </div>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">Phone</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.phone || ''}
+                                                        onChange={e => updateProfile(p, { phone: e.target.value })}
+                                                        placeholder="+1 555 123 4567"
+                                                    />
+                                                </label>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">Headline</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.headline || ''}
+                                                        onChange={e => updateProfile(p, { headline: e.target.value })}
+                                                        placeholder="e.g. Senior Full-Stack Engineer"
+                                                    />
+                                                </label>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">Address</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.address || ''}
+                                                        onChange={e => updateProfile(p, { address: e.target.value })}
+                                                        placeholder="123 Main St"
+                                                    />
+                                                </label>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">City</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.city || ''}
+                                                        onChange={e => updateProfile(p, { city: e.target.value })}
+                                                        placeholder="City"
+                                                    />
+                                                </label>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">Country</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.country || ''}
+                                                        onChange={e => updateProfile(p, { country: e.target.value })}
+                                                        placeholder="Country"
+                                                    />
+                                                </label>
                                             </div>
+                                        </div>
 
                                             <div className="profile-details-group">
                                                 <div className="profile-group-title">Links</div>
@@ -650,15 +740,107 @@ const Options = () => {
                                                     </label>
                                                     <label className="profile-field">
                                                         <span className="profile-field-label">Portfolio</span>
-                                                        <input
-                                                            type="text"
-                                                            value={p.portfolio || ''}
-                                                            onChange={e => updateProfile(p, { portfolio: e.target.value })}
-                                                            placeholder="https://"
-                                                        />
-                                                    </label>
-                                                </div>
+                                                    <input
+                                                        type="text"
+                                                        value={p.portfolio || ''}
+                                                        onChange={e => updateProfile(p, { portfolio: e.target.value })}
+                                                        placeholder="https://"
+                                                    />
+                                                </label>
+                                                <label className="profile-field">
+                                                    <span className="profile-field-label">Website</span>
+                                                    <input
+                                                        type="text"
+                                                        value={p.website || ''}
+                                                        onChange={e => updateProfile(p, { website: e.target.value })}
+                                                        placeholder="https://"
+                                                    />
+                                                </label>
                                             </div>
+                                        </div>
+
+                                        {(p.languages?.length || p.certifications?.length || p.publications?.length || p.projects?.length || p.awards?.length || p.volunteer?.length || (p.extracted_fields && Object.keys(p.extracted_fields).length > 0)) && (
+                                            <div className="profile-details-group">
+                                                <div className="profile-group-title">Extras</div>
+                                                <div className="profile-fields-grid">
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Languages</span>
+                                                        <div className="profile-tags">
+                                                            {(p.languages || []).map((lang, i) => <span key={`${lang}-${i}`} className="profile-tag">{lang}</span>)}
+                                                            {(!p.languages || p.languages.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Certifications</span>
+                                                        <div className="profile-tags">
+                                                            {(p.certifications || []).map((cert, i) => <span key={`${cert}-${i}`} className="profile-tag">{cert}</span>)}
+                                                            {(!p.certifications || p.certifications.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Projects</span>
+                                                        <div className="profile-tags">
+                                                            {(p.projects || []).map((proj, i) => (
+                                                                <span key={`${proj.name}-${i}`} className="profile-tag">{proj.name}{proj.description ? `: ${proj.description}` : ''}</span>
+                                                            ))}
+                                                            {(!p.projects || p.projects.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Publications</span>
+                                                        <div className="profile-tags">
+                                                            {(p.publications || []).map((pub, i) => (
+                                                                <span key={`${pub.title}-${i}`} className="profile-tag">{pub.title}{pub.venue ? `, ${pub.venue}` : ''}{pub.year ? ` (${pub.year})` : ''}</span>
+                                                            ))}
+                                                            {(!p.publications || p.publications.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Awards</span>
+                                                        <div className="profile-tags">
+                                                            {(p.awards || []).map((award, i) => <span key={`${award}-${i}`} className="profile-tag">{award}</span>)}
+                                                            {(!p.awards || p.awards.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Volunteer</span>
+                                                        <div className="profile-tags">
+                                                            {(p.volunteer || []).map((vol, i) => (
+                                                                <span key={`${vol.organization}-${i}`} className="profile-tag">
+                                                                    {vol.organization}{vol.role ? ` - ${vol.role}` : ''}{vol.start_date ? ` (${vol.start_date} - ${vol.end_date || 'Present'})` : ''}
+                                                                </span>
+                                                            ))}
+                                                            {(!p.volunteer || p.volunteer.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Other extracted facts</span>
+                                                        <div className="profile-tags">
+                                                            {p.extracted_fields && Object.keys(p.extracted_fields).length > 0 ? (
+                                                                Object.entries(p.extracted_fields).map(([key, val]) => (
+                                                                    <span key={key} className="profile-tag">{key}: {val}</span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="profile-tag muted">None</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Custom sections</span>
+                                                        <div className="profile-tags">
+                                                            {p.custom_sections && Object.keys(p.custom_sections).length > 0 ? (
+                                                                Object.entries(p.custom_sections).map(([section, items]) => (
+                                                                    <span key={section} className="profile-tag">{section}: {(items || []).join(' | ')}</span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="profile-tag muted">None</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p className="muted">These fields were pulled from the CV. Please review and edit above if needed.</p>
+                                            </div>
+                                        )}
                                         </div>
                                     </div>
                                 );
