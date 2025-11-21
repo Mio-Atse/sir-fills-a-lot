@@ -28,7 +28,7 @@ const ChatWidget = () => {
     const [status, setStatus] = useState('');
     const [unfilledFields, setUnfilledFields] = useState<FormFieldDescriptor[]>([]);
     const [wizardStep, setWizardStep] = useState<number>(-1);
-    const [wizardValue, setWizardValue] = useState('');
+    const [wizardValue, setWizardValue] = useState<string | string[]>('');
     const [animationComplete, setAnimationComplete] = useState(false);
     const [isSwinging, setIsSwinging] = useState(false);
     const [swingComplete, setSwingComplete] = useState(false);
@@ -96,6 +96,21 @@ const ChatWidget = () => {
             return () => clearTimeout(timer);
         }
     }, [isSwinging]);
+
+    useEffect(() => {
+        if (wizardStep >= 0 && unfilledFields[wizardStep]) {
+            const field = unfilledFields[wizardStep];
+            if (field.controlType === 'checkbox' || field.controlType === 'multi-select') {
+                const preset = field.options?.filter(opt => opt.selected).map(opt => opt.value) || [];
+                setWizardValue(preset);
+            } else if (field.options?.length) {
+                const preselected = field.options.find(opt => opt.selected);
+                setWizardValue(preselected ? preselected.value : '');
+            } else {
+                setWizardValue('');
+            }
+        }
+    }, [wizardStep, unfilledFields]);
 
     const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -260,7 +275,15 @@ const ChatWidget = () => {
         if (wizardStep < 0 || wizardStep >= unfilledFields.length) return;
 
         const field = unfilledFields[wizardStep];
-        fillField(field, wizardValue);
+        const valueToApply = Array.isArray(wizardValue) ? wizardValue : wizardValue.toString().trim();
+        const requiresChoice = field.controlType !== 'text' && field.controlType !== 'textarea' && field.controlType !== 'file';
+
+        if (requiresChoice && ((Array.isArray(valueToApply) && valueToApply.length === 0) || (!Array.isArray(valueToApply) && !valueToApply))) {
+            setStatus('Pick an option to continue.');
+            return;
+        }
+
+        fillField(field, valueToApply);
 
         setWizardValue('');
         if (wizardStep + 1 < unfilledFields.length) {
@@ -280,6 +303,88 @@ const ChatWidget = () => {
             setWizardStep(-1);
             setMessages(prev => [...prev, { role: 'assistant', content: "Wizard finished." }]);
         }
+    };
+
+    const currentWizardField = wizardStep >= 0 ? unfilledFields[wizardStep] : undefined;
+
+    const toggleMultiValue = (val: string) => {
+        setWizardValue(prev => {
+            const current = Array.isArray(prev) ? [...prev] : [];
+            if (current.includes(val)) {
+                return current.filter(v => v !== val);
+            }
+            current.push(val);
+            return current;
+        });
+    };
+
+    const renderWizardControl = (field: FormFieldDescriptor | undefined) => {
+        if (!field) return null;
+        const hasOptions = field.options && field.options.length > 0;
+
+        if (hasOptions && (field.controlType === 'select' || field.controlType === 'custom-select')) {
+            return (
+                <select
+                    className="sf-wizard-select"
+                    value={typeof wizardValue === 'string' ? wizardValue : ''}
+                    onChange={e => setWizardValue(e.target.value)}
+                >
+                    <option value="" disabled>Select an option</option>
+                    {field.options!.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            );
+        }
+
+        if (hasOptions && field.controlType === 'radio') {
+            return (
+                <div className="sf-wizard-options">
+                    {field.options!.map(opt => (
+                        <label key={opt.value} className={`sf-option-pill ${wizardValue === opt.value ? 'active' : ''}`}>
+                            <input
+                                type="radio"
+                                name={`wizard-${wizardStep}`}
+                                value={opt.value}
+                                checked={wizardValue === opt.value}
+                                onChange={() => setWizardValue(opt.value)}
+                            />
+                            <span>{opt.label}</span>
+                        </label>
+                    ))}
+                </div>
+            );
+        }
+
+        if (hasOptions && (field.controlType === 'checkbox' || field.controlType === 'multi-select')) {
+            const selected = Array.isArray(wizardValue) ? wizardValue : [];
+            return (
+                <div className="sf-wizard-options">
+                    {field.options!.map(opt => (
+                        <label key={opt.value} className={`sf-option-pill checkbox ${selected.includes(opt.value) ? 'active' : ''}`}>
+                            <input
+                                type="checkbox"
+                                value={opt.value}
+                                checked={selected.includes(opt.value)}
+                                onChange={() => toggleMultiValue(opt.value)}
+                            />
+                            <span>{opt.label}</span>
+                        </label>
+                    ))}
+                </div>
+            );
+        }
+
+        return (
+            <input
+                autoFocus
+                type="text"
+                value={typeof wizardValue === 'string' ? wizardValue : ''}
+                onChange={e => setWizardValue(e.target.value)}
+                placeholder="Enter value..."
+                className="sf-wizard-input"
+            />
+        );
     };
 
     const generateCoverLetter = async () => {
@@ -464,24 +569,19 @@ const ChatWidget = () => {
                                     </div>
                                 ))}
 
-                                {wizardStep >= 0 && unfilledFields[wizardStep] && (
+                                {currentWizardField && (
                                     <div className="sf-wizard-card">
                                         <div className="sf-wizard-header">
                                             <AlertCircle size={16} className="sf-wizard-icon" />
                                             <span>Missing Field</span>
                                         </div>
                                         <p className="sf-wizard-label">
-                                            {unfilledFields[wizardStep].label || unfilledFields[wizardStep].name}
+                                            {currentWizardField?.label || currentWizardField?.name}
                                         </p>
                                         <form onSubmit={handleWizardSubmit}>
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                value={wizardValue}
-                                                onChange={e => setWizardValue(e.target.value)}
-                                                placeholder="Enter value..."
-                                                className="sf-wizard-input"
-                                            />
+                                            <div className="sf-wizard-control">
+                                                {renderWizardControl(currentWizardField)}
+                                            </div>
                                             <div className="sf-wizard-actions">
                                                 <button type="submit" className="sf-btn-sm-primary">Fill</button>
                                                 <button type="button" onClick={skipWizardStep} className="sf-btn-sm-secondary">Skip</button>

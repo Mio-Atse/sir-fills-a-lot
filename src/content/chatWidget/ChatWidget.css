@@ -480,20 +480,61 @@
     color: var(--sf-text-main);
 }
 
-.sf-wizard-input {
+.sf-wizard-control {
+    margin-bottom: 12px;
+}
+
+.sf-wizard-input,
+.sf-wizard-select {
     width: 100%;
     padding: 10px;
     border: 1px solid var(--sf-border-subtle);
     border-radius: 8px;
     font-size: 14px;
-    margin-bottom: 12px;
     box-sizing: border-box;
+    background: white;
 }
 
-.sf-wizard-input:focus {
+.sf-wizard-input:focus,
+.sf-wizard-select:focus {
     outline: none;
     border-color: var(--sf-primary);
     box-shadow: 0 0 0 2px var(--sf-primary-soft);
+}
+
+.sf-wizard-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sf-option-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--sf-border-subtle);
+    cursor: pointer;
+    background: #f8fafc;
+    color: var(--sf-text-main);
+    transition: all 0.15s ease;
+}
+
+.sf-option-pill input {
+    accent-color: var(--sf-primary);
+}
+
+.sf-option-pill.active {
+    border-color: var(--sf-primary);
+    background: var(--sf-primary-soft);
+    color: var(--sf-text-main);
+    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.1);
+}
+
+.sf-option-pill.checkbox {
+    border-radius: 12px;
 }
 
 .sf-wizard-actions {
