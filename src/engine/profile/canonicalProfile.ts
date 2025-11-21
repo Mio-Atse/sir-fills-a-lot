@@ -75,6 +75,11 @@ export function mapUserToCanonical(user: UserProfile, prefs: UserPreferences): C
     const firstName = nameParts.length > 0 ? nameParts[0] : '';
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
+    const locationString =
+        user.location ||
+        [user.address, user.city, user.country].filter(Boolean).join(', ') ||
+        '';
+
     return {
         personal: {
             firstName,
@@ -82,10 +87,12 @@ export function mapUserToCanonical(user: UserProfile, prefs: UserPreferences): C
             fullName: user.full_name || '',
             email: user.email || '',
             phone: user.phone || '',
-            locationString: user.location || '',
+            locationString,
             linkedinUrl: user.linkedin,
             portfolioUrl: user.portfolio,
-            websiteUrl: user.github, // Using github as website fallback if portfolio is distinct
+            websiteUrl: user.website || user.github || user.portfolio, // Prefer explicit website, then github/portfolio
+            city: user.city,
+            country: user.country,
         },
         applicationDefaults: {
             workAuthorization: !prefs.visa_sponsorship_required, // Assuming if sponsorship not required, they are authorized. Rough heuristic.
