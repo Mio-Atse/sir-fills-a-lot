@@ -119,12 +119,52 @@ function setupJobPageDetection(widgetRoot: HTMLElement) {
     runDetection();
 }
 
-// Listen for capture mode activation
+// Listen for capture mode activation and auto-fill trigger
 chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
     if (message.type === 'ACTIVATE_CAPTURE_MODE') {
         activateCaptureMode();
+    } else if (message.type === 'START_AUTO_FILL') {
+        handleAutoFill();
     }
 });
+
+import { AutoApplyController } from '../engine/flows/autoApplyController';
+import { mapUserToCanonical } from '../engine/profile/canonicalProfile';
+import { StorageSchema } from '../storage/schema';
+
+async function handleAutoFill() {
+    console.log('[Sir Fills-A-Lot] Starting auto-fill...');
+    try {
+        const data = await chrome.storage.local.get(['profiles', 'preferences', 'defaultProfileId']) as Partial<StorageSchema>;
+
+        if (!data.profiles || data.profiles.length === 0) {
+            alert('No profile found. Please create a profile in the extension options.');
+            return;
+        }
+
+        const profileId = data.defaultProfileId;
+        const userProfile = data.profiles.find(p => p.id === profileId) || data.profiles[0];
+        const preferences = data.preferences || {
+            preferred_role_titles: [],
+            preferred_locations: [],
+            remote_only: false,
+            relocation_ok: true,
+            salary_min: 0,
+            salary_max: 0,
+            currency: "USD",
+            notice_period: "2 weeks",
+            years_of_experience: 0,
+            visa_sponsorship_required: false,
+        };
+
+        const canonicalProfile = mapUserToCanonical(userProfile, preferences);
+        const controller = new AutoApplyController(canonicalProfile);
+        await controller.start();
+
+    } catch (e) {
+        console.error('[Sir Fills-A-Lot] Auto-fill failed:', e);
+    }
+}
 
 function activateCaptureMode() {
     const overlay = document.createElement('div');
