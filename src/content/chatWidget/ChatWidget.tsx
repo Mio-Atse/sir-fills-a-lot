@@ -17,6 +17,7 @@ const mascotSwingLastFrame = getExtensionAssetUrl('icons/swing_sprite_last_posit
 const appIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
 const SHOW_WIDGET_MSG = 'SIRFILLS_SHOW_WIDGET';
 const HIDE_WIDGET_MSG = 'SIRFILLS_HIDE_WIDGET';
+const WAKE_WIDGET_MSG = 'SIRFILLS_WAKE_WIDGET';
 
 const ChatWidget = () => {
     const visibilityState = window as Window & { __sirfillsLastVisibility?: boolean };
@@ -78,11 +79,17 @@ const ChatWidget = () => {
     }, [isOpen]);
 
     useEffect(() => {
-        const handleMessage = (message: any) => {
+        const handleMessage = (message: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
             if (message.type === SHOW_WIDGET_MSG) {
                 setIsVisible(true);
             } else if (message.type === HIDE_WIDGET_MSG) {
                 setIsVisible(false);
+            } else if (message.type === WAKE_WIDGET_MSG) {
+                setIsVisible(true);
+                setIsOpen(true);
+                setActiveTab(message.payload?.tab === 'chat' ? 'chat' : 'scan');
+                visibilityState.__sirfillsLastVisibility = true;
+                sendResponse?.({ ok: true });
             }
         };
 

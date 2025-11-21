@@ -4,9 +4,10 @@ import ReactDOM from 'react-dom/client';
 import { StorageService } from '../storage/storage';
 import './Popup.css';
 import { getExtensionAssetUrl } from '../utils/assetPaths';
-import { Settings, MousePointerClick, ClipboardPaste } from 'lucide-react';
+import { Settings, MousePointerClick, ClipboardPaste, Shield } from 'lucide-react';
 
 const mascotIcon = getExtensionAssetUrl('icons/sir-fills-a-lot-app-icon.png');
+const WAKE_WIDGET_MSG = 'SIRFILLS_WAKE_WIDGET';
 
 const Popup = () => {
     const [hasProfile, setHasProfile] = useState(false);
@@ -48,6 +49,56 @@ const Popup = () => {
         }
     };
 
+    const sendMessageToTab = async (tabId: number, message: any) => {
+        return new Promise((resolve, reject) => {
+            chrome.tabs.sendMessage(tabId, message, (response) => {
+                const lastError = chrome.runtime.lastError;
+                if (lastError) {
+                    reject(lastError);
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    };
+
+    const injectContentScript = async (tabId: number) => {
+        const manifest = chrome.runtime.getManifest();
+        const files = manifest.content_scripts?.flatMap(cs => cs.js || []) || [];
+
+        if (!files.length) {
+            throw new Error('No content script files defined in manifest.');
+        }
+
+        await chrome.scripting.executeScript({
+            target: { tabId },
+            files
+        });
+    };
+
+    const callKnight = async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id) {
+            alert('No active tab found.');
+            return;
+        }
+
+        try {
+            await sendMessageToTab(tab.id, { type: WAKE_WIDGET_MSG, payload: { tab: 'scan' } });
+        } catch (_err) {
+            try {
+                await injectContentScript(tab.id);
+                await sendMessageToTab(tab.id, { type: WAKE_WIDGET_MSG, payload: { tab: 'scan' } });
+            } catch (injectErr) {
+                console.error('Failed to wake widget:', injectErr);
+                alert('Could not start the widget on this page. Try reloading the tab.');
+                return;
+            }
+        }
+
+        window.close();
+    };
+
     const handlePasteSave = async () => {
         if (pasteText.length < 10) {
             alert("Text too short.");
@@ -69,6 +120,14 @@ const Popup = () => {
             </header>
 
             <div className="popup-content">
+                <div className="knight-callout">
+                    <button onClick={callKnight} className="btn-knight">
+                        <Shield size={16} />
+                        Call Knight
+                    </button>
+                    <p className="knight-caption">Press for job application.</p>
+                </div>
+
                 {!hasProfile ? (
                     <div className="alert-card">
                         <div className="alert-icon">🛡️</div>
