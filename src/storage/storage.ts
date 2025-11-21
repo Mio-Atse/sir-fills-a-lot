@@ -96,6 +96,13 @@ export class StorageService {
         await this.set('profiles', encrypted as StorageSchema['profiles']);
     }
 
+    static async deleteProfile(profileId: string): Promise<void> {
+        const profiles = await this.getProfiles();
+        const filtered = profiles.filter(p => p.id !== profileId);
+        const encrypted = await this.encryptProfiles(filtered);
+        await this.set('profiles', encrypted as StorageSchema['profiles']);
+    }
+
     static async setDefaultProfileId(id: string): Promise<void> {
         await this.set('defaultProfileId', id);
     }

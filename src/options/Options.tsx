@@ -162,6 +162,23 @@ const Options = () => {
         StorageService.saveProfile(updated).then(loadData);
     };
 
+    const deleteProfile = async (profileId: string) => {
+        const filtered = profiles.filter(p => p.id !== profileId);
+        // StorageService does not expose bulk save; remove then add remaining
+        // Simplest: delete then re-save remaining profiles
+        await StorageService.deleteProfile(profileId);
+        for (const profile of filtered) {
+            await StorageService.saveProfile(profile);
+        }
+        // If the deleted profile was default, reset to first available
+        if (defaultProfileId === profileId) {
+            const newDefault = filtered[0]?.id ?? null;
+            await StorageService.setDefaultProfileId(newDefault || '');
+            setDefaultProfileId(newDefault);
+        }
+        setProfiles(filtered);
+    };
+
     const handleSetDefaultProfile = async (profileId: string) => {
         await StorageService.setDefaultProfileId(profileId);
         setDefaultProfileId(profileId);
@@ -583,26 +600,33 @@ const Options = () => {
                                 const rolesPreview = (p.preferred_roles || []).filter(role => !!role).slice(0, 3);
                                 return (
                                     <div key={p.id} className="profile-card card">
-                                        <div className="profile-header">
-                                            <div className="profile-title">
-                                                <div className="profile-icon">
-                                                    <img src={getProfileIcon(p, index)} alt={`${p.cv_name} icon`} />
+                                            <div className="profile-header">
+                                                <div className="profile-title">
+                                                    <div className="profile-icon">
+                                                        <img src={getProfileIcon(p, index)} alt={`${p.cv_name} icon`} />
+                                                    </div>
+                                                    <div className="profile-title-text">
+                                                        <strong>{p.cv_name}</strong>
+                                                        <span className="profile-updated">Updated {formatProfileDate(p.last_updated)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="profile-title-text">
-                                                    <strong>{p.cv_name}</strong>
-                                                    <span className="profile-updated">Updated {formatProfileDate(p.last_updated)}</span>
+                                                <div className="profile-actions">
+                                                    {defaultProfileId === p.id && <span className="badge-default">Default</span>}
+                                                    <button
+                                                        className={`btn-subtle${defaultProfileId === p.id ? ' active' : ''}`}
+                                                        onClick={() => handleSetDefaultProfile(p.id)}
+                                                    >
+                                                        {defaultProfileId === p.id ? 'Active' : 'Make Default'}
+                                                    </button>
+                                                    <button
+                                                        className="btn-subtle danger"
+                                                        onClick={() => deleteProfile(p.id)}
+                                                        title="Remove this profile"
+                                                    >
+                                                        Delete
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="profile-actions">
-                                                {defaultProfileId === p.id && <span className="badge-default">Default</span>}
-                                                <button
-                                                    className={`btn-subtle${defaultProfileId === p.id ? ' active' : ''}`}
-                                                    onClick={() => handleSetDefaultProfile(p.id)}
-                                                >
-                                                    {defaultProfileId === p.id ? 'Active' : 'Make Default'}
-                                                </button>
-                                            </div>
-                                        </div>
 
                                         <div className="profile-meta">
                                             <div className="profile-meta-item">
