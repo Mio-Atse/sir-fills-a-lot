@@ -235,11 +235,15 @@ const Options = () => {
                 languages: parsed.languages || [],
                 certifications: parsed.certifications || [],
                 projects: parsed.projects || [],
+                publications: parsed.publications || [],
+                awards: parsed.awards || [],
+                volunteer: parsed.volunteer || [],
                 experience: parsed.experience || [],
                 education: parsed.education || [],
                 preferred_roles: parsed.preferred_roles || [],
                 location: locationString || parsed.location?.city || parsed.location?.country || parsed.location || '',
                 extracted_fields: parsed.extracted_fields || {},
+                custom_sections: parsed.custom_sections || {},
             };
 
             await StorageService.saveProfile(newProfile);
@@ -731,7 +735,7 @@ const Options = () => {
                                             </div>
                                         </div>
 
-                                        {(p.languages?.length || p.certifications?.length || p.extracted_fields) && (
+                                        {(p.languages?.length || p.certifications?.length || p.publications?.length || p.projects?.length || p.awards?.length || p.volunteer?.length || (p.extracted_fields && Object.keys(p.extracted_fields).length > 0)) && (
                                             <div className="profile-details-group">
                                                 <div className="profile-group-title">Extras</div>
                                                 <div className="profile-fields-grid">
@@ -750,11 +754,59 @@ const Options = () => {
                                                         </div>
                                                     </div>
                                                     <div className="profile-field">
+                                                        <span className="profile-field-label">Projects</span>
+                                                        <div className="profile-tags">
+                                                            {(p.projects || []).map((proj, i) => (
+                                                                <span key={`${proj.name}-${i}`} className="profile-tag">{proj.name}{proj.description ? `: ${proj.description}` : ''}</span>
+                                                            ))}
+                                                            {(!p.projects || p.projects.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Publications</span>
+                                                        <div className="profile-tags">
+                                                            {(p.publications || []).map((pub, i) => (
+                                                                <span key={`${pub.title}-${i}`} className="profile-tag">{pub.title}{pub.venue ? `, ${pub.venue}` : ''}{pub.year ? ` (${pub.year})` : ''}</span>
+                                                            ))}
+                                                            {(!p.publications || p.publications.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Awards</span>
+                                                        <div className="profile-tags">
+                                                            {(p.awards || []).map((award, i) => <span key={`${award}-${i}`} className="profile-tag">{award}</span>)}
+                                                            {(!p.awards || p.awards.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Volunteer</span>
+                                                        <div className="profile-tags">
+                                                            {(p.volunteer || []).map((vol, i) => (
+                                                                <span key={`${vol.organization}-${i}`} className="profile-tag">
+                                                                    {vol.organization}{vol.role ? ` - ${vol.role}` : ''}{vol.start_date ? ` (${vol.start_date} - ${vol.end_date || 'Present'})` : ''}
+                                                                </span>
+                                                            ))}
+                                                            {(!p.volunteer || p.volunteer.length === 0) && <span className="profile-tag muted">None</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
                                                         <span className="profile-field-label">Other extracted facts</span>
                                                         <div className="profile-tags">
                                                             {p.extracted_fields && Object.keys(p.extracted_fields).length > 0 ? (
                                                                 Object.entries(p.extracted_fields).map(([key, val]) => (
                                                                     <span key={key} className="profile-tag">{key}: {val}</span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="profile-tag muted">None</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="profile-field">
+                                                        <span className="profile-field-label">Custom sections</span>
+                                                        <div className="profile-tags">
+                                                            {p.custom_sections && Object.keys(p.custom_sections).length > 0 ? (
+                                                                Object.entries(p.custom_sections).map(([section, items]) => (
+                                                                    <span key={section} className="profile-tag">{section}: {(items || []).join(' | ')}</span>
                                                                 ))
                                                             ) : (
                                                                 <span className="profile-tag muted">None</span>

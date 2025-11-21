@@ -19,7 +19,10 @@ Return strictly this JSON shape:
   "skills": ["skill1", "skill2", ...],
   "languages": ["English", "French", ...],
   "certifications": ["Certification Name - Issuer - Year", ...],
-  "projects": [{ "name": "Project name", "description": "What they did / tech" }],
+  "projects": [{ "name": "Project name", "description": "What they did / tech", "link": "", "technologies": [""] }],
+  "publications": [{ "title": "Paper title", "venue": "Conference/Journal", "year": "YYYY", "link": "", "description": "" }],
+  "awards": ["Award - Issuer - Year", ...],
+  "volunteer": [{ "organization": "Org", "role": "Role", "start_date": "YYYY-MM or Present", "end_date": "YYYY-MM or Present", "description": "" }],
   "experience": [
     {
       "company": "Company Name",
@@ -33,19 +36,23 @@ Return strictly this JSON shape:
     {
       "institution": "University Name",
       "degree": "Degree Name",
-      "year": "Graduation Year"
+      "year": "Graduation Year or range"
     }
   ],
   "preferred_roles": ["Role 1", "Role 2"],
   "extracted_fields": {
-    "anything_else_useful": "If you see extra explicit facts (visa status, clearance, salary expectations, etc.), put short key-value pairs here"
+    "anything_else_useful": "If you see extra explicit facts (visa status, clearance, salary expectations, publications not covered, tools, etc.), put short key-value pairs here"
+  },
+  "custom_sections": {
+    "Section Title": ["Bullet or sentence extracted verbatim", "Another bullet"]
   }
 }
 
 Rules:
 - If a field is missing, use empty strings or empty arrays.
 - Do not invent facts; only include what is explicit or strongly implied.
-- Normalize phone with digits and punctuation only.`
+- Normalize phone with digits and punctuation only.
+- If you see a section that does not fit above (e.g., Publications, Patents, Talks, Volunteer, Awards), fill the corresponding field; otherwise drop the bullets into custom_sections with the section title as the key.`
         },
         {
             role: "user",
