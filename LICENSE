@@ -1,21 +1,42 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2025 Sir Fills-A-Lot Contributors
+Permissions
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+You may use this software for any noncommercial purpose, including:
+- research
+- experimentation
+- personal projects
+- education
+- evaluation
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You may make changes to the software and share those changes in source code form for any of the above permitted uses.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Conditions
+
+You MUST:
+- Preserve this license and copyright notice in all copies.
+- Clearly mark any changes you make.
+
+You MAY NOT:
+- Use the software for commercial purposes.
+- Sell the software or any product/service that uses it.
+- Use the software in a commercial SaaS, hosted service, or paid automation system.
+- Integrate the software into any revenue-generating product.
+
+No Liability
+
+As far as the law allows, the software comes as-is, without any warranty.
+The authors are not liable for any damages or legal issues arising from its use.
+
+-------------------------------------------------------------------------
+
+PolyForm Noncommercial License 1.0.0
+https://polyformproject.org/licenses/noncommercial/1.0.0
+
+Business Source Exception (Optional)
+
+The copyright holder may release additional commercial licenses on request.
+Commercial licensing is available from the copyright holder of this project.
+
+Copyright (c) 2025 Samet Dönmez
+All rights reserved.
